@@ -78,7 +78,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Search and Filter Section */}
+      {/* Search Section */}
       <View style={styles.searchSection}>
         <Pressable
           style={styles.searchButton}

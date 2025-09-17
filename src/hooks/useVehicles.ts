@@ -15,8 +15,10 @@ export const useVehicles = (establishmentId?: string) => {
     try {
       setLoading(true);
       setError(null);
-      const data = await vehicleService.getEntries(establishmentId);
-      setVehicles(data);
+      console.log('🚗 Fetching vehicles for establishment:', establishmentId);
+      const result = await vehicleService.getEntries(establishmentId);
+      setVehicles(result);
+      console.log('🚗 Fetched vehicles:', result.length);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar vehículos');
       console.error('Error fetching vehicles:', err);
@@ -27,56 +29,44 @@ export const useVehicles = (establishmentId?: string) => {
 
   const fetchBrands = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
-      const data = await vehicleService.getBrands();
-      setBrands(data);
+      const result = await vehicleService.getBrands();
+      setBrands(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar marcas');
       console.error('Error fetching brands:', err);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
-  const addVehicle = useCallback(async (vehicleData: VehicleFormData): Promise<Vehicle | null> => {
+  const addVehicle = useCallback(async (vehicleData: VehicleFormData): Promise<boolean> => {
     try {
       setLoading(true);
       setError(null);
-      const newVehicle = await vehicleService.postEntry(vehicleData);
-      setVehicles(prev => [newVehicle, ...prev]);
-      return newVehicle;
+      await vehicleService.postEntry(vehicleData);
+      await fetchVehicles();
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al agregar vehículo');
       console.error('Error adding vehicle:', err);
-      return null;
+      return false;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchVehicles]);
 
   const updateVehicleState = useCallback(async (updateData: UpdateVehicleState): Promise<boolean> => {
     try {
       setLoading(true);
       setError(null);
       await vehicleService.postEntryState(updateData);
-      
-      // Update local state
-      setVehicles(prev => prev.map(vehicle => 
-        vehicle._id === updateData.ingresoId 
-          ? { ...vehicle, estado: updateData.estado, horaEgreso: updateData.horaEgreso }
-          : vehicle
-      ));
-      
+      await fetchVehicles();
       return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al actualizar estado del vehículo');
+      setError(err instanceof Error ? err.message : 'Error al actualizar estado');
       console.error('Error updating vehicle state:', err);
       return false;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchVehicles]);
 
   const searchPlate = useCallback(async (patente: string, establishmentId: string): Promise<VehicleFound | null> => {
     try {

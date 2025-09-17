@@ -26,10 +26,17 @@ export const EstablishmentSelector: React.FC<EstablishmentSelectorProps> = ({
   };
 
   const getDisplayText = () => {
+    console.log('🏢 getDisplayText - selectedEstablishment:', selectedEstablishment?.nombre);
+    console.log('🏢 getDisplayText - loading:', loading);
+    console.log('🏢 getDisplayText - establishments count:', establishments.length);
+    
     if (loading) return 'Cargando...';
     if (selectedEstablishment) return selectedEstablishment.nombre;
     return 'Seleccionar establecimiento';
   };
+
+  const displayText = getDisplayText();
+  console.log('🏢 Final display text:', displayText);
 
   return (
     <View style={styles.container}>
@@ -40,7 +47,7 @@ export const EstablishmentSelector: React.FC<EstablishmentSelectorProps> = ({
       >
         <Building size={18} color={colors.white} />
         <Text style={styles.selectedText} numberOfLines={1}>
-          {getDisplayText()}
+          {displayText}
         </Text>
         <ChevronDown size={18} color={colors.white} />
       </TouchableOpacity>
