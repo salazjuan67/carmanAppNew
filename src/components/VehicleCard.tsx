@@ -108,12 +108,12 @@ const getStateColor = (estado: string): string => {
 const styles = StyleSheet.create({
   card: {
     gap: 4,
-    margin: 3,
+    margin: 4,
     alignItems: 'center',
     borderRadius: borderRadius.lg,
     borderWidth: 2,
     paddingBottom: spacing.sm,
-    width: 110,
+    width: 100,
     minHeight: 140,
     position: 'relative',
     backgroundColor: colors.white,
@@ -127,6 +127,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 3,
+    overflow: 'visible',
   },
   title: {
     fontWeight: typography.weights.bold,
@@ -168,7 +169,8 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    elevation: 5,
+    elevation: 9999,
+    zIndex: 9999,
   },
   vipText: {
     color: colors.white,

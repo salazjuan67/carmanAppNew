@@ -2,7 +2,6 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
-  Settings, 
   Plus, 
   LogOut,
   Bell
@@ -10,11 +9,10 @@ import {
 import { colors, spacing, borderRadius, typography } from '../src/config/theme';
 import { useAuth } from '../src/hooks/useAuth';
 import { useVehicles, useEstablishments } from '../src/hooks/useVehicles';
-import { useShift } from '../src/hooks/useShift';
 import { AuthGuard } from '../src/components/AuthGuard';
 import { VehicleList } from '../src/components/VehicleList';
 import { EstablishmentSelector } from '../src/components/EstablishmentSelector';
-import { ShiftButton } from '../src/components/ShiftButton';
+import { ShiftButtonSimple } from '../src/components/ShiftButtonSimple';
 
 export default function HomeScreen() {
   const { logout, user } = useAuth();
@@ -64,24 +62,13 @@ function HomeScreenContent({ logout, user, handleLogout }: {
     loading: establishmentsLoading 
   } = useEstablishments();
   
-  // Use the selected establishment ID or fallback to user's establishment
-  const establishmentId = selectedEstablishment?._id || user?.establecimiento || '666236d2b6316ac455e22509';
-  
-  // Use shift hook
-  const { shift } = useShift(establishmentId);
-  
-  // Use vehicles hook
-  const { vehicles, loading, refetch } = useVehicles(establishmentId);
+      // Use the selected establishment ID or fallback to user's establishment
+      const establishmentId = selectedEstablishment?._id || user?.establecimiento || '666236d2b6316ac455e22509';
+      
+      // Use vehicles hook
+      const { vehicles, loading, refetch } = useVehicles(establishmentId);
 
   const handleNewVehicle = () => {
-    if (!shift) {
-      Alert.alert(
-        'Turno requerido',
-        'Debe abrir un turno antes de ingresar un vehículo',
-        [{ text: 'Entendido' }]
-      );
-      return;
-    }
     router.push('/vehicle/new');
   };
 
@@ -105,12 +92,12 @@ function HomeScreenContent({ logout, user, handleLogout }: {
               >
                 <Bell size={24} color="white" />
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => router.push('/profile')}
-                style={styles.headerButton}
-              >
-                <Settings size={24} color="white" />
-              </TouchableOpacity>
+              {establishmentId && (
+                <ShiftButtonSimple 
+                  establishmentId={establishmentId}
+                  establishmentName={selectedEstablishment?.nombre}
+                />
+              )}
               <TouchableOpacity
                 onPress={handleLogout}
                 style={styles.headerButton}
@@ -132,45 +119,22 @@ function HomeScreenContent({ logout, user, handleLogout }: {
 
       {/* Main Content */}
       <View style={styles.mainContent}>
-        {/* Shift Status */}
-        <View style={styles.shiftSection}>
-          <View style={styles.shiftHeader}>
-            <Text style={styles.shiftTitle}>Estado del Turno</Text>
-            {establishmentId && <ShiftButton establishmentId={establishmentId} />}
-          </View>
-          {shift ? (
-            <View style={styles.shiftActive}>
-              <Text style={styles.shiftActiveText}>✓ Turno activo: {shift.nombre}</Text>
-            </View>
-          ) : (
-            <View style={styles.shiftInactive}>
-              <Text style={styles.shiftInactiveText}>⚠ Sin turno activo</Text>
-            </View>
-          )}
-        </View>
-
         {/* Vehicle List */}
         <View style={styles.vehicleSection}>
-          <VehicleList 
-            vehicles={vehicles} 
-            loading={loading}
-            onRefresh={refetch}
-          />
+            <VehicleList 
+              vehicles={vehicles} 
+              loading={loading}
+              onRefresh={refetch}
+            />
         </View>
 
         {/* New Vehicle Button */}
         <TouchableOpacity
-          style={[
-            styles.newVehicleButton,
-            !shift && styles.disabledButton
-          ]}
+          style={styles.newVehicleButton}
           onPress={handleNewVehicle}
-          disabled={!shift}
         >
           <Plus size={24} color="white" />
-          <Text style={styles.newVehicleButtonText}>
-            {shift ? 'Nuevo Vehículo' : 'Requiere turno activo'}
-          </Text>
+          <Text style={styles.newVehicleButtonText}>Nuevo Vehículo</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -228,44 +192,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     justifyContent: 'space-between',
   },
-  shiftSection: {
-    marginBottom: spacing.md,
-  },
-  shiftHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  shiftTitle: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.semibold,
-    color: colors.black,
-  },
-  shiftActive: {
-    backgroundColor: colors.success[100],
-    padding: spacing.sm,
-    borderRadius: borderRadius.md,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.success[500],
-  },
-  shiftActiveText: {
-    color: colors.success[700],
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.medium,
-  },
-  shiftInactive: {
-    backgroundColor: colors.warning[100],
-    padding: spacing.sm,
-    borderRadius: borderRadius.md,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.warning[500],
-  },
-  shiftInactiveText: {
-    color: colors.warning[700],
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.medium,
-  },
   vehicleSection: {
     flex: 1,
   },
@@ -278,9 +204,6 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg,
     marginTop: spacing.md,
     gap: spacing.sm,
-  },
-  disabledButton: {
-    backgroundColor: colors.secondary[400],
   },
   newVehicleButtonText: {
     color: colors.white,

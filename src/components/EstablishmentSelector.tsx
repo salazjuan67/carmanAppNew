@@ -106,6 +106,7 @@ export const EstablishmentSelector: React.FC<EstablishmentSelectorProps> = ({
 const styles = StyleSheet.create({
   container: {
     marginVertical: spacing.sm,
+    width: '100%',
   },
   selector: {
     flexDirection: 'row',
@@ -116,6 +117,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg,
     gap: spacing.sm,
     minHeight: 48,
+    width: '100%',
   },
   selectedText: {
     flex: 1,

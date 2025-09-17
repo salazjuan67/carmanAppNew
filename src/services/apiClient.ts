@@ -88,19 +88,31 @@ class ApiClient {
       console.log(`🌐 API Request: ${options.method || 'GET'} ${url}`);
       
       const response = await fetch(url, config);
+      
+          // Check if response is JSON
+          const contentType = response.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            // Solo mostrar error si no es un 404 (endpoint no disponible)
+            if (response.status !== 404) {
+              console.error(`❌ Non-JSON response:`, text.substring(0, 200));
+            }
+            throw new Error(`Server returned non-JSON response: ${response.status}`);
+          }
+      
       const data = await response.json();
 
       console.log(`📦 Raw API Response:`, JSON.stringify(data, null, 2));
 
       if (!response.ok) {
-        throw new Error(data.message || `HTTP ${response.status}`);
+        throw new Error(data?.message || `HTTP ${response.status}`);
       }
 
       console.log(`✅ API Response: ${response.status} ${url}`);
       return {
         success: true,
-        data: data.data || data,
-        message: data.message,
+        data: data?.data || data,
+        message: data?.message,
       };
     } catch (error) {
       console.error(`❌ API Error: ${endpoint}`, error);

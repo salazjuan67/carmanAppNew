@@ -1,65 +1,82 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet, Alert } from 'react-native';
+import { Pressable, Modal, View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { LockKeyhole, LockKeyholeOpen } from 'lucide-react-native';
-import { useShift } from '../hooks/useShift';
+import { getEstablishmentShift } from '../services/shiftServiceNew';
+import { useAddShift } from '../hooks/useAddShift';
+import { useEndShift } from '../hooks/useEndShift';
 import { ShiftState, SHIFT_OPTIONS } from '../types/shift';
 import { colors, spacing, typography, borderRadius } from '../config/theme';
 
-interface ShiftButtonProps {
+interface ShiftButtonSimpleProps {
   establishmentId: string;
   establishmentName?: string;
 }
 
-export const ShiftButton: React.FC<ShiftButtonProps> = ({ establishmentId, establishmentName }) => {
+export const ShiftButtonSimple: React.FC<ShiftButtonSimpleProps> = ({
+  establishmentId,
+  establishmentName,
+}) => {
+  const [showDialog, setShowDialog] = useState(false);
   const [showStartModal, setShowStartModal] = useState(false);
-  const [showEndModal, setShowEndModal] = useState(false);
   const [selectedShift, setSelectedShift] = useState<ShiftState | null>(null);
   
-  const { shift, loading, startShift, endShift } = useShift(establishmentId);
+  const { mutateAsync: addShift, isPending: addShiftLoading } = useAddShift();
+  const { mutateAsync: endShift, isPending: endShiftLoading } = useEndShift();
 
-  // Función para obtener un nombre más legible del turno
-  const getShiftDisplayName = () => {
-    if (!shift) return '';
-    
-    // Si tenemos el nombre del establecimiento, usarlo
-    if (establishmentName) {
-      return `${establishmentName} - ${shift.turno}`;
-    }
-    
-    // Si no, usar el nombre del turno pero limpiarlo
-    const cleanName = shift.nombre.replace(establishmentId, establishmentName || 'Establecimiento');
-    return cleanName;
-  };
+  // Solo consultar el turno del establecimiento actual
+  const { data: shift, isLoading, refetch } = useQuery({
+    queryKey: ['shift', establishmentId],
+    queryFn: () => getEstablishmentShift(establishmentId),
+    enabled: !!establishmentId,
+    staleTime: 0, // Cambiar a 0 para que siempre refresque
+  });
 
   const handleStartShift = async () => {
-    if (!selectedShift) return;
+    if (!selectedShift || !establishmentId) return;
 
-    const success = await startShift(selectedShift);
-    if (success) {
+    const shiftName = `${new Date().toLocaleDateString('es-ES')} - ${establishmentName || 'Establecimiento'} - ${selectedShift}`;
+
+    const body = {
+      establecimiento: establishmentId,
+      turno: selectedShift,
+      nombre: shiftName,
+    };
+
+    try {
+      console.log('🔄 Starting shift:', body);
+      await addShift(body);
+      console.log('✅ Shift started successfully');
       setShowStartModal(false);
       setSelectedShift(null);
-      Alert.alert('Turno iniciado', 'El turno se ha iniciado correctamente');
-    } else {
-      Alert.alert('Error', 'No se pudo iniciar el turno');
+      // Refrescar la query para obtener el nuevo turno
+      refetch();
+    } catch (e) {
+      console.error('❌ Error starting shift:', e);
     }
   };
 
   const handleEndShift = async () => {
-    const success = await endShift();
-    if (success) {
-      setShowEndModal(false);
-      Alert.alert('Turno cerrado', 'El turno se ha cerrado correctamente');
-    } else {
-      Alert.alert('Error', 'No se pudo cerrar el turno');
+    if (!establishmentId) return;
+    
+    try {
+      console.log('🔄 Ending shift for establishment:', establishmentId);
+      await endShift(establishmentId);
+      console.log('✅ Shift ended successfully');
+      setShowDialog(false);
+      // Refrescar la query para obtener el estado actualizado
+      refetch();
+    } catch (e) {
+      console.error('❌ Error ending shift:', e);
     }
   };
 
-  const handleCloseStartModal = () => {
-    setShowStartModal(false);
-    setSelectedShift(null);
-  };
+  // Log para debugging
+  console.log('🔄 ShiftButtonSimple - establishmentId:', establishmentId);
+  console.log('🔄 ShiftButtonSimple - shift:', shift);
+  console.log('🔄 ShiftButtonSimple - isLoading:', isLoading);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <View style={styles.spinner} />
@@ -67,39 +84,40 @@ export const ShiftButton: React.FC<ShiftButtonProps> = ({ establishmentId, estab
     );
   }
 
-  if (shift) {
+  if (!!shift) {
     return (
       <>
-        <TouchableOpacity
+        <Pressable
           style={styles.button}
-          onPress={() => setShowEndModal(true)}
+          onPress={() => setShowDialog(true)}
         >
           <LockKeyhole size={20} color={colors.primary[600]} />
-        </TouchableOpacity>
-
+        </Pressable>
+        
         <Modal
           animationType="slide"
           transparent={true}
-          visible={showEndModal}
-          onRequestClose={() => setShowEndModal(false)}
+          visible={showDialog}
+          onRequestClose={() => setShowDialog(false)}
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Cerrar Turno</Text>
               <Text style={styles.modalText}>
                 ¿Estás seguro de que quieres cerrar el turno{' '}
-                <Text style={styles.boldText}>{getShiftDisplayName()}</Text>?
+                <Text style={styles.boldText}>{shift.nombre}</Text>?
               </Text>
               <View style={styles.modalButtons}>
                 <TouchableOpacity
                   style={[styles.modalButton, styles.cancelButton]}
-                  onPress={() => setShowEndModal(false)}
+                  onPress={() => setShowDialog(false)}
                 >
                   <Text style={styles.cancelButtonText}>Cancelar</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.modalButton, styles.confirmButton]}
                   onPress={handleEndShift}
+                  disabled={endShiftLoading}
                 >
                   <Text style={styles.confirmButtonText}>Cerrar Turno</Text>
                 </TouchableOpacity>
@@ -109,72 +127,72 @@ export const ShiftButton: React.FC<ShiftButtonProps> = ({ establishmentId, estab
         </Modal>
       </>
     );
-  }
+  } else {
+    return (
+      <>
+        <Pressable
+          style={styles.button}
+          onPress={() => setShowStartModal(true)}
+        >
+          <LockKeyholeOpen size={20} color={colors.primary[600]} />
+        </Pressable>
 
-  return (
-    <>
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => setShowStartModal(true)}
-      >
-        <LockKeyholeOpen size={20} color={colors.primary[600]} />
-      </TouchableOpacity>
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showStartModal}
+          onRequestClose={() => setShowStartModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Iniciar Turno</Text>
+              <Text style={styles.modalSubtitle}>Seleccionar turno:</Text>
+              
+              <View style={styles.shiftOptions}>
+                {SHIFT_OPTIONS.map((option) => (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      styles.shiftOption,
+                      selectedShift === option.value && styles.selectedShiftOption
+                    ]}
+                    onPress={() => setSelectedShift(option.value as ShiftState)}
+                  >
+                    <Text style={[
+                      styles.shiftOptionText,
+                      selectedShift === option.value && styles.selectedShiftOptionText
+                    ]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={showStartModal}
-        onRequestClose={handleCloseStartModal}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Iniciar Turno</Text>
-            <Text style={styles.modalSubtitle}>Seleccionar turno:</Text>
-            
-            <View style={styles.shiftOptions}>
-              {SHIFT_OPTIONS.map((option) => (
+              <View style={styles.modalButtons}>
                 <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    styles.shiftOption,
-                    selectedShift === option.value && styles.selectedShiftOption
-                  ]}
-                  onPress={() => setSelectedShift(option.value as ShiftState)}
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setShowStartModal(false)}
                 >
-                  <Text style={[
-                    styles.shiftOptionText,
-                    selectedShift === option.value && styles.selectedShiftOptionText
-                  ]}>
-                    {option.label}
-                  </Text>
+                  <Text style={styles.cancelButtonText}>Cancelar</Text>
                 </TouchableOpacity>
-              ))}
-            </View>
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={handleCloseStartModal}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.modalButton, 
-                  styles.confirmButton,
-                  !selectedShift && styles.disabledButton
-                ]}
-                onPress={handleStartShift}
-                disabled={!selectedShift}
-              >
-                <Text style={styles.confirmButtonText}>Iniciar Turno</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.modalButton, 
+                    styles.confirmButton,
+                    (!selectedShift || addShiftLoading) && styles.disabledButton
+                  ]}
+                  onPress={handleStartShift}
+                  disabled={!selectedShift || addShiftLoading}
+                >
+                  <Text style={styles.confirmButtonText}>Iniciar Turno</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
-    </>
-  );
+        </Modal>
+      </>
+    );
+  }
 };
 
 const styles = StyleSheet.create({

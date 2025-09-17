@@ -19,7 +19,8 @@ export const VehicleTag: React.FC<VehicleTagProps> = ({
   selected 
 }) => {
   const backgroundColor = getStateColor(state);
-  const scale = selected ? 1.2 : 1;
+  const scale = selected ? 1.05 : 1;
+  const opacity = selected ? 1 : 0.8;
 
   return (
     <Pressable
@@ -28,6 +29,7 @@ export const VehicleTag: React.FC<VehicleTagProps> = ({
         { 
           backgroundColor,
           transform: [{ scale }],
+          opacity,
         }
       ]}
       onPress={onPress}
@@ -42,37 +44,48 @@ const getStateColor = (estado: string): string => {
   switch (estado) {
     case 'ESTACIONADO':
     case 'INGRESADO':
-      return colors.error[200]; // Rojo claro
+      return '#EF4444'; // Rojo vibrante
     case 'EN CAMINO':
     case 'SOLICITADO':
-      return colors.warning[200]; // Amarillo claro
+      return '#F59E0B'; // Amarillo vibrante
     case 'ENTREGADO':
     case 'FACTURADO':
-      return colors.success[200]; // Verde claro
+      return '#10B981'; // Verde vibrante
     default:
-      return colors.secondary[200]; // Gris claro
+      return '#6B7280'; // Gris
   }
 };
 
 const styles = StyleSheet.create({
   tag: {
-    minWidth: 80,
+    minWidth: 90,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.sm,
     marginHorizontal: spacing.xs,
+    shadowColor: colors.black,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   displayText: {
     textAlign: 'center',
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.semibold,
-    color: colors.black,
-  },
-  quantityText: {
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.semibold,
-    color: colors.black,
+    color: colors.white,
+    marginBottom: 2,
+  },
+  quantityText: {
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.bold,
+    color: colors.white,
   },
 });

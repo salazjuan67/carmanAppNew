@@ -79,7 +79,7 @@ export const VehicleGroupTags: React.FC<VehicleGroupTagsProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    height: 60,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',

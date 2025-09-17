@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { useAuth } from '../src/hooks/useAuth';
+import { QueryProvider } from '../src/providers/QueryProvider';
 import '../global.css';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -24,7 +25,7 @@ export default function RootLayout() {
   }, []); // Remove initialize from dependencies
 
   return (
-    <>
+    <QueryProvider>
       <StatusBar style="light" backgroundColor="#081024" />
       <Stack
         screenOptions={{
@@ -37,6 +38,6 @@ export default function RootLayout() {
         <Stack.Screen name="home" />
         <Stack.Screen name="profile" />
       </Stack>
-    </>
+    </QueryProvider>
   );
 }

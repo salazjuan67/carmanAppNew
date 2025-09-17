@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FlatList, Text, View, Pressable, TextInput, StyleSheet } from 'react-native';
+import { FlatList, Text, View, TextInput, StyleSheet } from 'react-native';
 import { Search } from 'lucide-react-native';
 import { VehicleCard } from './VehicleCard';
 import { VehicleGroupTags } from './VehicleGroupTags';
@@ -20,7 +20,6 @@ export const VehicleList: React.FC<VehicleListProps> = ({
   onRefresh,
   activeShift 
 }) => {
-  const [showInput, setShowInput] = useState(false);
   const [searchPlate, setSearchPlate] = useState('');
   const [selectedLayer, setSelectedLayer] = useState<'red' | 'yellow' | 'green'>('yellow');
   const [filteredVehicles, setFilteredVehicles] = useState<Vehicle[]>([]);
@@ -78,35 +77,26 @@ export const VehicleList: React.FC<VehicleListProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Search Section */}
-      <View style={styles.searchSection}>
-        <Pressable
-          style={styles.searchButton}
-          onPress={() => setShowInput(!showInput)}
-        >
-          <Search size={20} color={colors.secondary[600]} />
-          <Text style={styles.searchButtonText}>
-            {searchPlate ? `"${searchPlate}"` : 'Buscar vehículo...'}
-          </Text>
-        </Pressable>
-
-        {showInput && (
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar por patente..."
-            value={searchPlate}
-            onChangeText={setSearchPlate}
-            autoFocus
-          />
-        )}
+      {/* Search Input */}
+      <View style={styles.searchContainer}>
+        <Search size={18} color={colors.secondary[600]} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Buscar por patente..."
+          placeholderTextColor={colors.secondary[400]}
+          value={searchPlate}
+          onChangeText={setSearchPlate}
+        />
       </View>
 
       {/* Vehicle Tags */}
-      <VehicleGroupTags
-        vehicles={searchFilteredVehicles}
-        selectedLayer={selectedLayer}
-        onLayerChange={handleLayerChange}
-      />
+      <View style={styles.tagsContainer}>
+        <VehicleGroupTags
+          vehicles={searchFilteredVehicles}
+          selectedLayer={selectedLayer}
+          onLayerChange={handleLayerChange}
+        />
+      </View>
 
       {/* Vehicle List */}
       <FlatList
@@ -115,6 +105,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({
         keyExtractor={(item) => item._id}
         numColumns={3}
         contentContainerStyle={styles.vehicleGrid}
+        columnWrapperStyle={styles.row}
         showsVerticalScrollIndicator={false}
         onRefresh={onRefresh}
         refreshing={loading}
@@ -148,45 +139,41 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.base,
     color: colors.secondary[600],
   },
-  searchSection: {
-    marginBottom: spacing.md,
-  },
-  searchButton: {
+  searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.secondary[100],
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.lg,
-    gap: spacing.sm,
-  },
-  searchButtonText: {
-    flex: 1,
-    fontSize: typography.sizes.base,
-    color: colors.secondary[600],
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.sm,
+    gap: spacing.xs,
   },
   searchInput: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.secondary[300],
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    marginTop: spacing.sm,
-    fontSize: typography.sizes.base,
+    flex: 1,
+    fontSize: typography.sizes.sm,
     color: colors.black,
+    paddingVertical: spacing.xs,
+  },
+  tagsContainer: {
+    height: 70,
+    marginBottom: spacing.sm,
   },
   vehicleGrid: {
-    paddingBottom: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  row: {
+    justifyContent: 'space-around',
+    paddingHorizontal: spacing.sm,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: spacing.xl,
+    paddingVertical: spacing.lg,
   },
   emptyText: {
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.sm,
     color: colors.secondary[600],
     textAlign: 'center',
   },
