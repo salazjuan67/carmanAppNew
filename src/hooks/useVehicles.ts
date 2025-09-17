@@ -129,10 +129,12 @@ export const useEstablishments = () => {
       const response = await apiClient.getEstablishments();
       
       if (response.success && response.data) {
+        console.log('🏢 Fetched establishments:', response.data.map(e => e.nombre));
         setEstablishments(response.data);
         
         // Auto-select first establishment if none selected
-        if (!selectedEstablishment && response.data.length > 0) {
+        if (response.data.length > 0) {
+          console.log('🏢 Auto-selecting first establishment:', response.data[0].nombre);
           setSelectedEstablishment(response.data[0]);
         }
       }
@@ -142,7 +144,7 @@ export const useEstablishments = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedEstablishment]);
+  }, []);
 
   useEffect(() => {
     fetchEstablishments();

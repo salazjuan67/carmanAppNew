@@ -20,29 +20,29 @@ export const EstablishmentSelector: React.FC<EstablishmentSelectorProps> = ({
   const [modalVisible, setModalVisible] = useState(false);
 
   const handleSelect = (establishment: Establishment) => {
+    console.log('🏢 Selecting establishment:', establishment.nombre);
     onSelect(establishment);
     setModalVisible(false);
   };
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.loadingText}>Cargando establecimientos...</Text>
-      </View>
-    );
-  }
+  const getDisplayText = () => {
+    if (loading) return 'Cargando...';
+    if (selectedEstablishment) return selectedEstablishment.nombre;
+    return 'Seleccionar establecimiento';
+  };
 
   return (
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.selector}
         onPress={() => setModalVisible(true)}
+        disabled={loading}
       >
-        <Building size={16} color={colors.white} />
+        <Building size={18} color={colors.white} />
         <Text style={styles.selectedText} numberOfLines={1}>
-          {selectedEstablishment?.nombre || 'Seleccionar establecimiento'}
+          {getDisplayText()}
         </Text>
-        <ChevronDown size={16} color={colors.white} />
+        <ChevronDown size={18} color={colors.white} />
       </TouchableOpacity>
 
       <Modal
@@ -66,19 +66,28 @@ export const EstablishmentSelector: React.FC<EstablishmentSelectorProps> = ({
                   ]}
                   onPress={() => handleSelect(item)}
                 >
-                  <Text style={styles.establishmentName}>{item.nombre}</Text>
-                  {item.direccion && (
-                    <Text style={styles.establishmentAddress}>{item.direccion}</Text>
+                  <View style={styles.establishmentInfo}>
+                    <Building size={16} color={colors.primary[600]} />
+                    <View style={styles.establishmentText}>
+                      <Text style={styles.establishmentName}>{item.nombre}</Text>
+                      {item.direccion && (
+                        <Text style={styles.establishmentAddress}>{item.direccion}</Text>
+                      )}
+                    </View>
+                  </View>
+                  {selectedEstablishment?._id === item._id && (
+                    <Text style={styles.selectedIndicator}>✓</Text>
                   )}
                 </TouchableOpacity>
               )}
+              showsVerticalScrollIndicator={false}
             />
             
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setModalVisible(false)}
             >
-              <Text style={styles.closeButtonText}>Cancelar</Text>
+              <Text style={styles.closeButtonText}>Cerrar</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -96,49 +105,60 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.primary[700],
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
     gap: spacing.sm,
+    minHeight: 48,
   },
   selectedText: {
     flex: 1,
     color: colors.white,
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.base,
     fontWeight: typography.weights.medium,
-  },
-  loadingText: {
-    color: colors.white,
-    fontSize: typography.sizes.sm,
-    textAlign: 'center',
   },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: spacing.lg,
   },
   modalContent: {
     backgroundColor: colors.white,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.xl,
     padding: spacing.lg,
-    width: '90%',
-    maxHeight: '70%',
+    width: '100%',
+    maxHeight: '80%',
+    maxWidth: 400,
   },
   modalTitle: {
-    fontSize: typography.sizes.lg,
+    fontSize: typography.sizes.xl,
     fontWeight: typography.weights.bold,
     color: colors.black,
     textAlign: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   establishmentItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.secondary[200],
   },
   selectedItem: {
-    backgroundColor: colors.primary[100],
+    backgroundColor: colors.primary[50],
+    borderRadius: borderRadius.md,
+  },
+  establishmentInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: spacing.sm,
+  },
+  establishmentText: {
+    flex: 1,
   },
   establishmentName: {
     fontSize: typography.sizes.base,
@@ -150,11 +170,16 @@ const styles = StyleSheet.create({
     color: colors.secondary[600],
     marginTop: spacing.xs,
   },
+  selectedIndicator: {
+    fontSize: typography.sizes.lg,
+    color: colors.primary[600],
+    fontWeight: typography.weights.bold,
+  },
   closeButton: {
     backgroundColor: colors.secondary[500],
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-    marginTop: spacing.md,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    marginTop: spacing.lg,
   },
   closeButtonText: {
     color: colors.white,
