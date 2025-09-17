@@ -4,12 +4,13 @@ import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native';
 import { colors, spacing, borderRadius, typography } from '../src/config/theme';
+import { useAuth } from '../src/hooks/useAuth';
 
 export default function AuthScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const { login, isLoading } = useAuth();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -17,13 +18,32 @@ export default function AuthScreen() {
       return;
     }
 
-    setLoading(true);
-    
-    // Simular login (aquí iría la lógica real)
-    setTimeout(() => {
-      setLoading(false);
-      router.push('/home');
-    }, 1500);
+    // Validar formato de email básico
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Error', 'Por favor ingresa un correo electrónico válido');
+      return;
+    }
+
+    try {
+      const result = await login(email, password);
+      
+      if (result.success) {
+        // Login exitoso - navegar a home
+        router.push('/home');
+      } else {
+        // Mostrar error de login
+        Alert.alert(
+          'Error de Autenticación', 
+          result.error || 'Credenciales incorrectas. Por favor verifica tu email y contraseña.'
+        );
+      }
+    } catch (error) {
+      Alert.alert(
+        'Error', 
+        'Ocurrió un error inesperado. Por favor intenta nuevamente.'
+      );
+    }
   };
 
   return (
@@ -87,11 +107,11 @@ export default function AuthScreen() {
             {/* Login Button */}
             <TouchableOpacity
               onPress={handleLogin}
-              disabled={loading}
-              style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+              disabled={isLoading}
+              style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
             >
               <Text style={styles.loginButtonText}>
-                {loading ? 'Iniciando Sesión...' : 'Iniciar Sesión'}
+                {isLoading ? 'Iniciando Sesión...' : 'Iniciar Sesión'}
               </Text>
             </TouchableOpacity>
 

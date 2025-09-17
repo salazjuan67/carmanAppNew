@@ -2,20 +2,26 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
+import { useAuth } from '../src/hooks/useAuth';
 import '../global.css';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const { initialize } = useAuth();
+
   useEffect(() => {
-    // Hide splash screen after a short delay
+    // Initialize auth service
+    initialize();
+
+    // Hide splash screen after auth initialization
     const timer = setTimeout(() => {
       SplashScreen.hideAsync();
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, []); // Remove initialize from dependencies
 
   return (
     <>

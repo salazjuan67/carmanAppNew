@@ -11,8 +11,17 @@ import {
   LogOut,
   ChevronRight
 } from 'lucide-react-native';
+import { AuthGuard } from '../src/components/AuthGuard';
 
 export default function ProfileScreen() {
+  return (
+    <AuthGuard>
+      <ProfileScreenContent />
+    </AuthGuard>
+  );
+}
+
+function ProfileScreenContent() {
   const menuItems = [
     {
       id: 'profile',

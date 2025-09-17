@@ -1,6 +1,6 @@
 // API Configuration
 export const API_CONFIG = {
-  BASE_URL: 'https://api.carman.com', // Reemplazar con la URL real de la API
+  BASE_URL: 'http://149.50.128.181:4000', // URL real de la API Carman
   TIMEOUT: 10000,
   HEADERS: {
     'Content-Type': 'application/json',
@@ -11,32 +11,33 @@ export const API_CONFIG = {
 // API Endpoints
 export const API_ENDPOINTS = {
   // Auth
-  LOGIN: '/auth/login',
-  LOGOUT: '/auth/logout',
-  REFRESH_TOKEN: '/auth/refresh',
+  LOGIN: '/api/auth/login',
+  LOGOUT: '/api/auth/logout',
+  REFRESH_TOKEN: '/api/auth/refresh',
+  USER_PROFILE: '/api/auth/user',
+  
+  // Masters
+  BRANDS: '/api/masters/marcas',
+  ESTABLISHMENTS: '/api/masters/establecimientos',
   
   // Vehicles
-  VEHICLES: '/vehicles',
-  VEHICLE_BY_ID: (id: string) => `/vehicles/${id}`,
-  VEHICLE_ENTRY: '/vehicles/entry',
-  VEHICLE_EXIT: '/vehicles/exit',
-  
-  // Establishments
-  ESTABLISHMENTS: '/establishments',
-  ESTABLISHMENT_BY_ID: (id: string) => `/establishments/${id}`,
+  VEHICLES: '/api/vehiculos',
+  VEHICLE_BY_ID: (id: string) => `/api/vehiculos/${id}`,
+  VEHICLE_ENTRIES: '/api/vehiculos/ingresos',
+  SEARCH_PLATE: '/api/vehiculos/buscar',
+  POST_ENTRIES_STATE: '/api/vehiculos/ingresos/estado',
   
   // Notifications
-  NOTIFICATIONS: '/notifications',
-  UNREAD_NOTIFICATIONS: '/notifications/unread',
-  MARK_AS_READ: (id: string) => `/notifications/${id}/read`,
+  NOTIFICATIONS: '/api/notificaciones',
+  UNREAD_NOTIFICATIONS: '/api/notificaciones/unread',
   
   // Shifts
-  SHIFTS: '/shifts',
-  CURRENT_SHIFT: '/shifts/current',
+  SHIFTS: '/api/turnos',
+  SHIFTS_BY_ESTABLISHMENT: '/api/turnos/establecimiento',
+  END_SHIFT: '/api/turnos/finalizar',
   
-  // Users
-  USERS: '/users',
-  USER_PROFILE: '/users/profile',
+  // QR
+  QR_ENDPOINT: 'http://admin.carmanparking.com.ar/ticket',
 };
 
 // App Configuration

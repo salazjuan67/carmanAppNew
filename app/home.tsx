@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
@@ -9,11 +9,53 @@ import {
   Search, 
   MapPin,
   Clock,
-  Users
+  Users,
+  LogOut
 } from 'lucide-react-native';
 import { colors, spacing, borderRadius, typography } from '../src/config/theme';
+import { useAuth } from '../src/hooks/useAuth';
+import { AuthGuard } from '../src/components/AuthGuard';
 
 export default function HomeScreen() {
+  const { logout, user } = useAuth();
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Cerrar Sesión',
+      '¿Estás seguro de que quieres cerrar sesión?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Cerrar Sesión',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/auth');
+          },
+        },
+      ]
+    );
+  };
+
+  return (
+    <AuthGuard>
+      <HomeScreenContent 
+        logout={logout} 
+        user={user} 
+        handleLogout={handleLogout} 
+      />
+    </AuthGuard>
+  );
+}
+
+function HomeScreenContent({ logout, user, handleLogout }: {
+  logout: () => Promise<void>;
+  user: any;
+  handleLogout: () => void;
+}) {
   const quickActions = [
     {
       id: 'new-vehicle',
@@ -59,14 +101,24 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>¡Hola! 👋</Text>
-            <Text style={styles.subtitle}>Bienvenido a Carman</Text>
+            <Text style={styles.subtitle}>
+              Bienvenido{user?.nombre ? `, ${user.nombre}` : ''} a Carman
+            </Text>
           </View>
-          <TouchableOpacity
-            onPress={() => router.push('/profile')}
-            style={styles.settingsButton}
-          >
-            <Settings size={24} color="white" />
-          </TouchableOpacity>
+          <View style={styles.headerButtons}>
+            <TouchableOpacity
+              onPress={() => router.push('/profile')}
+              style={styles.headerButton}
+            >
+              <Settings size={24} color="white" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleLogout}
+              style={styles.headerButton}
+            >
+              <LogOut size={24} color="white" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Stats Cards */}
@@ -171,7 +223,11 @@ const styles = StyleSheet.create({
     color: colors.primary[200],
     fontSize: typography.sizes.base,
   },
-  settingsButton: {
+  headerButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  headerButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: borderRadius.full,
     padding: spacing.md,
