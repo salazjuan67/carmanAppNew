@@ -10,9 +10,9 @@ export interface Vehicle {
   _id: string;
   patente: string;
   sector: string;
-  establecimiento: string;
+  establecimiento: Establishment;
   nroLlave?: number;
-  marca?: string | Brand;
+  marca?: Brand | null;
   modelo?: string;
   color?: string;
   nombreConductor?: string;
@@ -26,6 +26,45 @@ export interface Vehicle {
   estado: VehicleState;
   createdAt?: string;
   updatedAt?: string;
+  historialEstados?: Estado[];
+  ord?: number;
+  nroTicket?: number;
+  empleado?: string;
+  turno?: string;
+  active?: boolean;
+  __v?: number;
+}
+
+export interface Establishment {
+  _id: string;
+  ord?: number;
+  nombre: string;
+  valets?: number;
+  servicio?: string;
+  direccion?: string;
+  created_at?: string;
+  active?: boolean;
+  __v?: number;
+  gerente?: string;
+  poliza?: string;
+  polizaVencimiento?: string;
+  sectores?: Sector[];
+  telefonoGerente?: string;
+  tipoEstablecimiento?: number;
+}
+
+export interface Sector {
+  nombre: string;
+  capacidad: string;
+  _id: string;
+}
+
+export interface Estado {
+  estado: string;
+  fecha: string;
+  empleado: string;
+  observacion: string;
+  _id: string;
 }
 
 export interface Brand {

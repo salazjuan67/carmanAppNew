@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { vehicleService } from '../services/vehicleService';
-import { Vehicle, Brand, VehicleFound, VehicleFormData, UpdateVehicleState } from '../types/vehicle';
+import { apiClient } from '../services/apiClient';
+import { Vehicle, Brand, VehicleFound, VehicleFormData, UpdateVehicleState, Establishment } from '../types/vehicle';
 
 export const useVehicles = (establishmentId?: string) => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -110,5 +111,49 @@ export const useVehicles = (establishmentId?: string) => {
     updateVehicleState,
     searchPlate,
     refetch: fetchVehicles,
+  };
+};
+
+// Hook for managing establishments
+export const useEstablishments = () => {
+  const [establishments, setEstablishments] = useState<Establishment[]>([]);
+  const [selectedEstablishment, setSelectedEstablishment] = useState<Establishment | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchEstablishments = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      console.log('🏢 Fetching establishments...');
+      const response = await apiClient.getEstablishments();
+      
+      if (response.success && response.data) {
+        setEstablishments(response.data);
+        
+        // Auto-select first establishment if none selected
+        if (!selectedEstablishment && response.data.length > 0) {
+          setSelectedEstablishment(response.data[0]);
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al cargar establecimientos');
+      console.error('Error fetching establishments:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedEstablishment]);
+
+  useEffect(() => {
+    fetchEstablishments();
+  }, [fetchEstablishments]);
+
+  return {
+    establishments,
+    selectedEstablishment,
+    setSelectedEstablishment,
+    loading,
+    error,
+    refetch: fetchEstablishments,
   };
 };
