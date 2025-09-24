@@ -110,6 +110,7 @@ export const useEstablishments = () => {
   const [selectedEstablishment, setSelectedEstablishment] = useState<Establishment | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
 
   const fetchEstablishments = useCallback(async () => {
     try {
@@ -122,11 +123,13 @@ export const useEstablishments = () => {
         console.log('🏢 Fetched establishments:', response.data.map(e => e.nombre));
         setEstablishments(response.data);
         
-        // Auto-select first establishment if none selected
-        if (response.data.length > 0) {
+        // Auto-select first establishment only on initial load if none selected
+        if (response.data.length > 0 && !selectedEstablishment && !hasInitiallyLoaded) {
           console.log('🏢 Auto-selecting first establishment:', response.data[0].nombre);
           setSelectedEstablishment(response.data[0]);
         }
+        
+        setHasInitiallyLoaded(true);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar establecimientos');
@@ -134,7 +137,7 @@ export const useEstablishments = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedEstablishment, hasInitiallyLoaded]);
 
   useEffect(() => {
     fetchEstablishments();

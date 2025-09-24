@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { VehicleTag } from './VehicleTag';
 import { Vehicle } from '../types/vehicle';
 import { colors, spacing } from '../config/theme';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface VehicleGroupTagsProps {
   vehicles: Vehicle[];
@@ -15,6 +16,7 @@ export const VehicleGroupTags: React.FC<VehicleGroupTagsProps> = ({
   selectedLayer, 
   onLayerChange 
 }) => {
+  const { t } = useLanguage();
   const sortVehicles = (el1: Vehicle, el2: Vehicle) => {
     const fecha1 = el1.createdAt || el1.horaIngreso;
     const fecha2 = el2.createdAt || el2.horaIngreso;
@@ -55,21 +57,21 @@ export const VehicleGroupTags: React.FC<VehicleGroupTagsProps> = ({
       <VehicleTag
         selected={selectedLayer === 'red'}
         state="INGRESADO"
-        displayText="Ingresos"
+        displayText={t('ingresos')}
         quantity={redVehicles.length}
         onPress={handlePress('red')}
       />
       <VehicleTag
         selected={selectedLayer === 'yellow'}
         state="SOLICITADO"
-        displayText="Solicitados"
+        displayText={t('solicitados')}
         quantity={yellowVehicles.length}
         onPress={handlePress('yellow')}
       />
       <VehicleTag
         selected={selectedLayer === 'green'}
         state="ENTREGADO"
-        displayText="Egresos"
+        displayText={t('egresos')}
         quantity={greenVehicles.length}
         onPress={handlePress('green')}
       />

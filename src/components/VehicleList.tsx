@@ -6,6 +6,7 @@ import { VehicleGroupTags } from './VehicleGroupTags';
 import { Vehicle } from '../types/vehicle';
 import { Shift } from '../types/shift';
 import { colors, spacing, typography, borderRadius } from '../config/theme';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface VehicleListProps {
   vehicles: Vehicle[];
@@ -20,13 +21,33 @@ export const VehicleList: React.FC<VehicleListProps> = ({
   onRefresh,
   activeShift 
 }) => {
+  const { t } = useLanguage();
   const [searchPlate, setSearchPlate] = useState('');
   const [selectedLayer, setSelectedLayer] = useState<'red' | 'yellow' | 'green'>('yellow');
   const [filteredVehicles, setFilteredVehicles] = useState<Vehicle[]>([]);
 
+  // Debug log for all vehicles
+  console.log('🚗 All vehicles received:', vehicles.map(v => ({ patente: v.patente, estado: v.estado, turno: v.turno })));
+
   // Filter vehicles by shift (similar to web version)
   const filteredByShift = vehicles.filter(
-    (item) => item.estado !== 'ENTREGADO' || (item.estado === 'ENTREGADO' && item.turno === activeShift?._id)
+    (item) => {
+      const shouldShow = item.estado !== 'ENTREGADO' || (item.estado === 'ENTREGADO' && item.turno === activeShift?._id);
+      
+      // Debug log for AG087IF
+      if (item.patente === 'AG087IF') {
+        console.log('🔍 AG087IF Debug:', {
+          patente: item.patente,
+          estado: item.estado,
+          turno: item.turno,
+          activeShiftId: activeShift?._id,
+          shouldShow,
+          activeShift
+        });
+      }
+      
+      return shouldShow;
+    }
   );
 
   // Filter by search plate
@@ -70,7 +91,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Cargando vehículos...</Text>
+        <Text style={styles.loadingText}>{t('loadingVehicles')}</Text>
       </View>
     );
   }
@@ -82,7 +103,7 @@ export const VehicleList: React.FC<VehicleListProps> = ({
         <Search size={18} color={colors.secondary[600]} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Buscar por patente..."
+          placeholder={t('searchByPlate')}
           placeholderTextColor={colors.secondary[400]}
           value={searchPlate}
           onChangeText={setSearchPlate}
@@ -116,8 +137,8 @@ export const VehicleList: React.FC<VehicleListProps> = ({
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>
             {searchPlate 
-              ? `No se encontraron vehículos con patente "${searchPlate}"`
-              : 'No hay vehículos para mostrar'
+              ? `${t('noVehiclesFound')} "${searchPlate}"`
+              : t('noVehiclesToShow')
             }
           </Text>
         </View>

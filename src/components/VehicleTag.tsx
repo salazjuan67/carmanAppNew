@@ -41,19 +41,7 @@ export const VehicleTag: React.FC<VehicleTagProps> = ({
 };
 
 const getStateColor = (estado: string): string => {
-  switch (estado) {
-    case 'ESTACIONADO':
-    case 'INGRESADO':
-      return '#EF4444'; // Rojo vibrante
-    case 'EN CAMINO':
-    case 'SOLICITADO':
-      return '#F59E0B'; // Amarillo vibrante
-    case 'ENTREGADO':
-    case 'FACTURADO':
-      return '#10B981'; // Verde vibrante
-    default:
-      return '#6B7280'; // Gris
-  }
+  return colors.stateColors[estado as keyof typeof colors.stateColors] || '#6B7280';
 };
 
 const styles = StyleSheet.create({

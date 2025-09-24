@@ -122,3 +122,30 @@ export interface VehicleStats {
   recurrentes: number;
   inhabilitados: number;
 }
+
+import { z } from 'zod';
+
+// Esquemas de validación Zod
+export const VehicleFormScheme = z.object({
+  patente: z
+    .string()
+    .regex(/[a-zA-Z]{3}[0-9]{3}$|[a-zA-Z]{2}[0-9]{3}[a-zA-Z]{2}$/, 'Patente incorrecta'),
+  sector: z.string(),
+  establecimiento: z.string(),
+  nroLlave: z.number().min(1, 'Número de llave es requerido').optional(),
+  marca: z.string().optional(),
+  modelo: z.string().optional(),
+  color: z.string().optional(),
+  nombreConductor: z.string().max(60, 'Nombre muy largo').optional(),
+  telefono: z.string().max(11, 'Teléfono incorrecto').optional(),
+  quienSeLleva: z.string().max(60, 'Nombre muy largo').optional(),
+});
+
+export type VehicleFormDataZod = z.infer<typeof VehicleFormScheme>;
+
+export type VehicleDataWithTime = VehicleFormDataZod & { 
+  horaIngreso: string; 
+};
+
+// Regex para validación de patente argentina
+export const PATENTE_REGEX = /^[a-zA-Z]{3}[0-9]{3}$|^[a-zA-Z]{2}[0-9]{3}[a-zA-Z]{2}$|^[a-zA-Z]{2}[0-9]{3}[a-zA-Z]{3}$/;

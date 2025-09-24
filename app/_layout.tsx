@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { useAuth } from '../src/hooks/useAuth';
 import { QueryProvider } from '../src/providers/QueryProvider';
+import { LanguageProvider } from '../src/contexts/LanguageContext';
 import '../global.css';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -22,22 +23,26 @@ export default function RootLayout() {
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, []); // Remove initialize from dependencies
+  }, []); // Remove fontsLoaded dependency
 
   return (
-    <QueryProvider>
-      <StatusBar style="light" backgroundColor="#081024" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: '#081024' },
-        }}
-      >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="auth" />
-        <Stack.Screen name="home" />
-        <Stack.Screen name="profile" />
-      </Stack>
-    </QueryProvider>
+    <LanguageProvider>
+      <QueryProvider>
+        <StatusBar style="light" backgroundColor="#081024" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: '#081024' },
+          }}
+        >
+          <Stack.Screen name="index" />
+          <Stack.Screen name="auth" />
+          <Stack.Screen name="home" />
+          <Stack.Screen name="profile" />
+          <Stack.Screen name="vehicle/details" />
+          <Stack.Screen name="vehicle/new" />
+        </Stack>
+      </QueryProvider>
+    </LanguageProvider>
   );
 }

@@ -1,151 +1,130 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ImageBackground, Animated, Image, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing, borderRadius, typography } from '../src/config/theme';
+import { colors, typography } from '../src/config/theme';
+import { CarmanIcon } from '../src/components/CarmanIcon';
+import { WideButton } from '../src/components/WideButton';
+import { useAnimated } from '../src/hooks/useAnimated';
 
 export default function WelcomeScreen() {
+  const animatedValue = useAnimated(0);
+
+  const handleContinue = () => {
+    console.log('🚀 Navigating to auth screen...');
+    router.push('/auth');
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        {/* Logo */}
-        <View style={styles.logoContainer}>
-          <Text style={styles.logoEmoji}>🚗</Text>
-          <Text style={styles.logoTitle}>Carman</Text>
-          <Text style={styles.logoSubtitle}>Gestión Inteligente de Vehículos</Text>
-        </View>
+    <View style={styles.container}>
+      <View style={styles.mainContent}>
+        <ImageBackground
+          source={require('../assets/bg/circles.png')}
+          resizeMode="contain"
+          style={styles.backgroundImage}
+        >
+          {/* Logo Section - 1/4 of screen */}
+          <View style={styles.logoSection}>
+            <CarmanIcon />
+          </View>
 
-        {/* Welcome Message */}
-        <View style={styles.welcomeContainer}>
-          <Text style={styles.welcomeTitle}>
-            Bienvenido a la nueva experiencia Carman
-          </Text>
-          <Text style={styles.welcomeDescription}>
-            Una aplicación moderna y eficiente para la gestión de vehículos en establecimientos
-          </Text>
-        </View>
-
-        {/* Action Buttons */}
-        <View style={styles.buttonsContainer}>
-          <TouchableOpacity
-            onPress={() => router.push('/auth')}
-            style={styles.primaryButton}
+          {/* Animated Car Section - 2/4 of screen */}
+          <Animated.View
+            style={[
+              styles.carSection,
+              {
+                transform: [
+                  {
+                    translateX: animatedValue.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-50, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
           >
-            <Text style={styles.primaryButtonText}>Iniciar Sesión</Text>
-          </TouchableOpacity>
+            <Image
+              source={require('../assets/images/car-frame.png')}
+              resizeMode="center"
+              style={styles.carImage}
+            />
+          </Animated.View>
 
-          <TouchableOpacity
-            onPress={() => router.push('/home')}
-            style={styles.secondaryButton}
-          >
-            <Text style={styles.secondaryButtonText}>Continuar como Invitado</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Version */}
-        <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>Versión 1.0.0 - Nueva Arquitectura</Text>
-        </View>
+          {/* Text Section - 1/4 of screen */}
+          <View style={styles.textSection}>
+            <Text style={styles.welcomeTitle}>
+              Gestión de estacionamientos y logística de conducción
+            </Text>
+            <Text style={styles.welcomeBody}>
+              Bienvenidos a la App Carman, una experiencia innovadora diseñada para brindar mayor agilidad y comodidad en el servicio de estacionamiento.
+            </Text>
+          </View>
+        </ImageBackground>
       </View>
-    </SafeAreaView>
+
+      {/* Button Section - 1/6 of screen */}
+      <View style={styles.buttonSection}>
+        <WideButton
+          title="Continuar"
+          onPress={handleContinue}
+        />
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.primary[900],
-  },
-  content: {
-    flex: 1,
+    backgroundColor: colors.blueBackGround,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
   },
-  logoContainer: {
-    marginBottom: spacing['3xl'],
+  mainContent: {
+    height: '83.33%', // 5/6 of screen
+  },
+  backgroundImage: {
+    height: '100%',
+  },
+  logoSection: {
+    height: '25%', // 1/4 of main content
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  logoEmoji: {
-    fontSize: typography.sizes['6xl'],
-    fontWeight: typography.weights.bold,
-    color: colors.white,
-    textAlign: 'center',
-    marginBottom: spacing.md,
-  },
-  logoTitle: {
-    fontSize: typography.sizes['4xl'],
-    fontWeight: typography.weights.bold,
-    color: colors.white,
-    textAlign: 'center',
-  },
-  logoSubtitle: {
-    fontSize: typography.sizes.lg,
-    color: colors.primary[200],
-    textAlign: 'center',
-    marginTop: spacing.sm,
-  },
-  welcomeContainer: {
-    marginBottom: spacing['2xl'],
+  carSection: {
+    height: '50%', // 2/4 of main content
+    justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: -176, // -ml-44 equivalent (44 * 4 = 176)
+  },
+  carImage: {
+    height: 200,
+    width: 300,
+  },
+  textSection: {
+    height: '25%', // 1/4 of main content
+    width: '100%',
+    justifyContent: 'space-evenly',
+    alignSelf: 'center',
+    paddingHorizontal: 24, // px-6 equivalent
   },
   welcomeTitle: {
-    fontSize: typography.sizes.xl,
+    fontSize: typography.sizes.lg,
+    lineHeight: 20, // leading-5 equivalent
     color: colors.white,
+    fontWeight: typography.weights.semibold,
     textAlign: 'center',
-    marginBottom: spacing.md,
-    fontWeight: typography.weights.medium,
   },
-  welcomeDescription: {
+  welcomeBody: {
+    paddingVertical: 20, // py-5 equivalent
     fontSize: typography.sizes.base,
-    color: colors.primary[200],
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  buttonsContainer: {
-    width: '100%',
-    gap: spacing.md,
-  },
-  primaryButton: {
-    backgroundColor: colors.white,
-    borderRadius: borderRadius['2xl'],
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing['2xl'],
-    shadowColor: colors.black,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  primaryButtonText: {
-    color: colors.primary[800],
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.semibold,
-    textAlign: 'center',
-  },
-  secondaryButton: {
-    borderWidth: 2,
-    borderColor: colors.white,
-    borderRadius: borderRadius['2xl'],
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing['2xl'],
-  },
-  secondaryButtonText: {
+    lineHeight: 20, // leading-5 equivalent
     color: colors.white,
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.semibold,
     textAlign: 'center',
   },
-  versionContainer: {
-    position: 'absolute',
-    bottom: spacing['2xl'],
-    alignItems: 'center',
-  },
-  versionText: {
-    color: colors.primary[300],
-    fontSize: typography.sizes.sm,
-    textAlign: 'center',
+  buttonSection: {
+    height: '16.67%', // 1/6 of screen
+    width: '100%',
+    justifyContent: 'center',
+    paddingHorizontal: 40, // px-10 equivalent
   },
 });

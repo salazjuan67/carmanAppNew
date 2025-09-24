@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Pressable, Modal, View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { LockKeyhole, LockKeyholeOpen } from 'lucide-react-native';
 import { getEstablishmentShift } from '../services/shiftServiceNew';
 import { useAddShift } from '../hooks/useAddShift';
 import { useEndShift } from '../hooks/useEndShift';
+import { useShiftStore } from '../store/shiftStore';
 import { ShiftState, SHIFT_OPTIONS } from '../types/shift';
 import { colors, spacing, typography, borderRadius } from '../config/theme';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface ShiftButtonSimpleProps {
   establishmentId: string;
@@ -17,12 +19,14 @@ export const ShiftButtonSimple: React.FC<ShiftButtonSimpleProps> = ({
   establishmentId,
   establishmentName,
 }) => {
+  const { t } = useLanguage();
   const [showDialog, setShowDialog] = useState(false);
   const [showStartModal, setShowStartModal] = useState(false);
   const [selectedShift, setSelectedShift] = useState<ShiftState | null>(null);
   
   const { mutateAsync: addShift, isPending: addShiftLoading } = useAddShift();
   const { mutateAsync: endShift, isPending: endShiftLoading } = useEndShift();
+  const setShift = useShiftStore((state) => state.setShift);
 
   // Solo consultar el turno del establecimiento actual
   const { data: shift, isLoading, refetch } = useQuery({
@@ -31,6 +35,11 @@ export const ShiftButtonSimple: React.FC<ShiftButtonSimpleProps> = ({
     enabled: !!establishmentId,
     staleTime: 0, // Cambiar a 0 para que siempre refresque
   });
+
+  // Actualizar el store cuando cambie el turno
+  useEffect(() => {
+    setShift(shift || null);
+  }, [shift, setShift]);
 
   const handleStartShift = async () => {
     if (!selectedShift || !establishmentId) return;
@@ -91,7 +100,7 @@ export const ShiftButtonSimple: React.FC<ShiftButtonSimpleProps> = ({
           style={styles.button}
           onPress={() => setShowDialog(true)}
         >
-          <LockKeyhole size={20} color={colors.primary[600]} />
+          <LockKeyhole size={20} color="white" />
         </Pressable>
         
         <Modal
@@ -102,9 +111,9 @@ export const ShiftButtonSimple: React.FC<ShiftButtonSimpleProps> = ({
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Cerrar Turno</Text>
+              <Text style={styles.modalTitle}>{t('endShift')}</Text>
               <Text style={styles.modalText}>
-                ¿Estás seguro de que quieres cerrar el turno{' '}
+                {t('confirmEndShift')}{' '}
                 <Text style={styles.boldText}>{shift.nombre}</Text>?
               </Text>
               <View style={styles.modalButtons}>
@@ -112,14 +121,14 @@ export const ShiftButtonSimple: React.FC<ShiftButtonSimpleProps> = ({
                   style={[styles.modalButton, styles.cancelButton]}
                   onPress={() => setShowDialog(false)}
                 >
-                  <Text style={styles.cancelButtonText}>Cancelar</Text>
+                  <Text style={styles.cancelButtonText}>{t('cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.modalButton, styles.confirmButton]}
                   onPress={handleEndShift}
                   disabled={endShiftLoading}
                 >
-                  <Text style={styles.confirmButtonText}>Cerrar Turno</Text>
+                  <Text style={styles.confirmButtonText}>{t('endShift')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -134,7 +143,7 @@ export const ShiftButtonSimple: React.FC<ShiftButtonSimpleProps> = ({
           style={styles.button}
           onPress={() => setShowStartModal(true)}
         >
-          <LockKeyholeOpen size={20} color={colors.primary[600]} />
+          <LockKeyholeOpen size={20} color="white" />
         </Pressable>
 
         <Modal
@@ -145,8 +154,8 @@ export const ShiftButtonSimple: React.FC<ShiftButtonSimpleProps> = ({
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Iniciar Turno</Text>
-              <Text style={styles.modalSubtitle}>Seleccionar turno:</Text>
+              <Text style={styles.modalTitle}>{t('startShift')}</Text>
+              <Text style={styles.modalSubtitle}>{t('selectShift')}</Text>
               
               <View style={styles.shiftOptions}>
                 {SHIFT_OPTIONS.map((option) => (
@@ -173,7 +182,7 @@ export const ShiftButtonSimple: React.FC<ShiftButtonSimpleProps> = ({
                   style={[styles.modalButton, styles.cancelButton]}
                   onPress={() => setShowStartModal(false)}
                 >
-                  <Text style={styles.cancelButtonText}>Cancelar</Text>
+                  <Text style={styles.cancelButtonText}>{t('cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
@@ -184,7 +193,7 @@ export const ShiftButtonSimple: React.FC<ShiftButtonSimpleProps> = ({
                   onPress={handleStartShift}
                   disabled={!selectedShift || addShiftLoading}
                 >
-                  <Text style={styles.confirmButtonText}>Iniciar Turno</Text>
+                  <Text style={styles.confirmButtonText}>{t('startShift')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -220,15 +229,10 @@ const styles = StyleSheet.create({
   button: {
     width: 40,
     height: 40,
-    backgroundColor: colors.white,
-    borderRadius: borderRadius.lg,
+    backgroundColor: colors.darkGrey,
+    borderRadius: borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 3,
   },
   modalOverlay: {
     flex: 1,

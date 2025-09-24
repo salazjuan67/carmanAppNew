@@ -1,4 +1,27 @@
 export const colors = {
+  // Colores exactos de la app vieja CamaraPatenteFinal
+  blueBackGround: '#161B25',
+  darkBlue: '#130F26',
+  red: '#F43939',
+  lightRed: '#F09393',
+  lightYellow: '#F6EB88',
+  lightGreen: '#9AF292',
+  ligthGrey: '#EAEAF3',
+  greyBackground: '#F4F4FA',
+  darkGrey: '#2A344E',
+  lightBlack: '#2D2D2D',
+  
+  // Colores de estado de vehículos
+  stateColors: {
+    ESTACIONADO: '#F09393',
+    INGRESADO: '#F09393',
+    'EN CAMINO': '#F6EB88',
+    SOLICITADO: '#F6EB88',
+    ENTREGADO: '#9AF292',
+    FACTURADO: '#9AF292',
+  },
+  
+  // Colores del sistema (mantener compatibilidad)
   primary: {
     50: '#eff6ff',
     100: '#dbeafe',
@@ -59,6 +82,30 @@ export const colors = {
     800: '#991b1b',
     900: '#7f1d1d',
   },
+  yellow: {
+    50: '#fefce8',
+    100: '#fef9c3',
+    200: '#fef08a',
+    300: '#fde047',
+    400: '#facc15',
+    500: '#eab308',
+    600: '#ca8a04',
+    700: '#a16207',
+    800: '#854d0e',
+    900: '#713f12',
+  },
+  red: {
+    50: '#fef2f2',
+    100: '#fee2e2',
+    200: '#fecaca',
+    300: '#fca5a5',
+    400: '#f87171',
+    500: '#ef4444',
+    600: '#dc2626',
+    700: '#b91c1c',
+    800: '#991b1b',
+    900: '#7f1d1d',
+  },
   white: '#ffffff',
   black: '#000000',
 };
@@ -96,9 +143,15 @@ export const typography = {
     '6xl': 60,
   },
   weights: {
+    light: '300' as const,
     normal: '400' as const,
     medium: '500' as const,
     semibold: '600' as const,
     bold: '700' as const,
+  },
+  fonts: {
+    montserrat: 'Montserrat_400Regular',
+    montserrat_light: 'Montserrat_300Light',
+    montserrat_semibold: 'Montserrat_600SemiBold',
   },
 };

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Modal, FlatList, StyleSheet } from 'react
 import { ChevronDown, Building } from 'lucide-react-native';
 import { Establishment } from '../types/vehicle';
 import { colors, spacing, typography, borderRadius } from '../config/theme';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface EstablishmentSelectorProps {
   establishments: Establishment[];
@@ -17,26 +18,21 @@ export const EstablishmentSelector: React.FC<EstablishmentSelectorProps> = ({
   onSelect,
   loading = false,
 }) => {
+  const { t } = useLanguage();
   const [modalVisible, setModalVisible] = useState(false);
 
   const handleSelect = (establishment: Establishment) => {
-    console.log('🏢 Selecting establishment:', establishment.nombre);
     onSelect(establishment);
     setModalVisible(false);
   };
 
   const getDisplayText = () => {
-    console.log('🏢 getDisplayText - selectedEstablishment:', selectedEstablishment?.nombre);
-    console.log('🏢 getDisplayText - loading:', loading);
-    console.log('🏢 getDisplayText - establishments count:', establishments.length);
-    
-    if (loading) return 'Cargando...';
+    if (loading) return t('loading');
     if (selectedEstablishment) return selectedEstablishment.nombre;
-    return 'Seleccionar establecimiento';
+    return t('selectEstablishment');
   };
 
   const displayText = getDisplayText();
-  console.log('🏢 Final display text:', displayText);
 
   return (
     <View style={styles.container}>
@@ -60,7 +56,7 @@ export const EstablishmentSelector: React.FC<EstablishmentSelectorProps> = ({
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Seleccionar Establecimiento</Text>
+            <Text style={styles.modalTitle}>{t('selectEstablishment')}</Text>
             
             <FlatList
               data={establishments}
@@ -94,7 +90,7 @@ export const EstablishmentSelector: React.FC<EstablishmentSelectorProps> = ({
               style={styles.closeButton}
               onPress={() => setModalVisible(false)}
             >
-              <Text style={styles.closeButtonText}>Cerrar</Text>
+              <Text style={styles.closeButtonText}>{t('close')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -111,7 +107,7 @@ const styles = StyleSheet.create({
   selector: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary[700],
+    backgroundColor: colors.darkGrey,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     borderRadius: borderRadius.lg,
@@ -181,11 +177,11 @@ const styles = StyleSheet.create({
   },
   selectedIndicator: {
     fontSize: typography.sizes.lg,
-    color: colors.primary[600],
+    color: colors.darkBlue,
     fontWeight: typography.weights.bold,
   },
   closeButton: {
-    backgroundColor: colors.secondary[500],
+    backgroundColor: colors.darkBlue,
     paddingVertical: spacing.md,
     borderRadius: borderRadius.lg,
     marginTop: spacing.lg,
