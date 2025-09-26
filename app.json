@@ -4,13 +4,13 @@
     "slug": "carman-jusalazar-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/images/carmanlogo-2.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/images/carmanlogo-2.png",
       "resizeMode": "contain",
-      "backgroundColor": "#081024"
+      "backgroundColor": "#130F26"
     },
     "ios": {
       "bundleIdentifier": "com.jusalazar.carmannew",
@@ -27,8 +27,8 @@
     "android": {
       "package": "com.jusalazar.carmannew",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/carmanlogo-2.png",
+        "backgroundColor": "#130F26"
       },
       "permissions": [
         "android.permission.CAMERA",
@@ -36,10 +36,19 @@
         "android.permission.WRITE_EXTERNAL_STORAGE"
       ],
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "navigationBar": {
+        "visible": false
+      },
+      "softwareKeyboardLayoutMode": "pan",
+      "statusBar": {
+        "hidden": false,
+        "style": "light-content",
+        "backgroundColor": "#130F26"
+      }
     },
     "web": {
-      "favicon": "./assets/favicon.png",
+      "favicon": "./assets/images/carmanlogo-2.png",
       "bundler": "metro"
     },
     "plugins": [
