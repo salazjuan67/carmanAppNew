@@ -13,7 +13,6 @@ import {
   StyleSheet,
   Animated,
 } from 'react-native';
-import { IconButton } from '../components/IconButton';
 import { WideButton } from '../components/WideButton';
 import { colors, spacing, typography, borderRadius } from '../config/theme';
 import { router } from 'expo-router';
@@ -238,15 +237,22 @@ export const DetailsScreen = ({ id }: { id: string }) => {
         <ImageBackground
           source={bgPath}
           resizeMode="stretch"
-          style={styles.headerContainer}
+          style={[styles.headerContainer, { paddingTop: backTop }]}
         >
-          {/* Botón de regreso */}
-          <View style={[styles.backButtonContainer, { top: backTop }]}>
-            <IconButton icon={<ChevronLeft size={25} color="black" />} onPress={handleGoBack} />
+          <View style={styles.headerTopBar}>
+            <Pressable
+              style={styles.backButton}
+              onPress={handleGoBack}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel={t('back')}
+            >
+              <ChevronLeft size={22} color="black" />
+            </Pressable>
           </View>
 
           {/* Información principal */}
-          <View style={styles.mainInfoContainer} pointerEvents="box-none">
+          <View style={styles.mainInfoContainer}>
             <View style={styles.infoRow}>
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>{t('plate')}</Text>
@@ -581,12 +587,27 @@ const styles = StyleSheet.create({
     backgroundColor: colors.greyBackground,
   },
   headerContainer: {
-    flex: 0.175,
+    flex: 0.2,
     width: '100%',
-    marginTop: 0, // Sin margin para que llegue hasta arriba
-    paddingTop: 50, // Padding para evitar el notch del iPhone
-    justifyContent: 'center',
+    marginTop: 0,
+    justifyContent: 'flex-start',
     alignItems: 'center',
+  },
+  headerTopBar: {
+    width: '100%',
+    paddingHorizontal: 12,
+    paddingBottom: 4,
+    alignItems: 'flex-start',
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.black,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerContent: {
     flex: 3,
@@ -598,18 +619,12 @@ const styles = StyleSheet.create({
   editButton: {
     position: 'absolute',
     left: 4,
-    top: 10, // Ajustar para el nuevo marginTop
+    top: 10,
     borderRadius: borderRadius.md,
     borderWidth: 1,
     borderColor: colors.black,
     backgroundColor: colors.white,
     padding: 8,
-  },
-  backButtonContainer: {
-    position: 'absolute',
-    left: 16,
-    zIndex: 20,
-    elevation: 20,
   },
   mainInfoContainer: {
     flex: 1,

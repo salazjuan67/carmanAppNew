@@ -1,4 +1,4 @@
-import { View, Text, ImageBackground, StyleSheet } from 'react-native';
+import { View, Text, ImageBackground, Image, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { colors, typography, spacing } from '../src/config/theme';
 import { CarmanIcon } from '../src/components/CarmanIcon';
@@ -19,6 +19,14 @@ export default function WelcomeScreen() {
         <View style={styles.content}>
           <View style={styles.logoSection}>
             <CarmanIcon />
+          </View>
+
+          <View style={styles.carSection}>
+            <Image
+              source={require('../assets/images/car-frame.png')}
+              resizeMode="contain"
+              style={styles.carImage}
+            />
           </View>
 
           <View style={styles.textSection}>
@@ -50,23 +58,32 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing['2xl'],
+    paddingTop: spacing.xl,
   },
   logoSection: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    transform: [{ scale: 1.4 }],
+    transform: [{ scale: 1.25 }],
+    marginBottom: spacing.sm,
   },
-  textSection: {
+  carSection: {
     flex: 1,
     width: '100%',
     justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  carImage: {
+    width: 240,
+    height: 150,
+  },
+  textSection: {
+    width: '100%',
+    justifyContent: 'center',
     gap: spacing.md,
-    paddingBottom: spacing.xl,
+    paddingBottom: spacing.lg,
   },
   welcomeTitle: {
     fontSize: typography.sizes.lg,
