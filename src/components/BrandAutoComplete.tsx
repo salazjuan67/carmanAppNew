@@ -31,7 +31,7 @@ export const BrandAutoComplete: React.FC<BrandAutoCompleteProps> = ({
 
   return (
     <AutoCompleteInput
-      label={t('brand')}
+      label={`${t('brand')} (${t('optional')})`}
       arrayData={brandItems}
       setValue={onBrandChange}
       blank={selectedBrand === ''}

@@ -12,13 +12,12 @@ import {
   Platform,
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { ChevronDown, ChevronUp, Camera } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 
 import { colors, spacing, borderRadius } from '../config/theme';
-import { VehicleFormScheme, VehicleFormDataZod, VehicleDataWithTime, PATENTE_REGEX, Vehicle } from '../types/vehicle';
+import { VehicleFormDataZod, VehicleDataWithTime, PATENTE_REGEX, Vehicle } from '../types/vehicle';
 import { useAddVehicle } from '../hooks/useAddVehicle';
 import { vehicleService } from '../services/vehicleService';
 import { SectorSelector } from './SectorSelector';
@@ -73,12 +72,11 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
 
   const {
     control,
-    handleSubmit,
     reset,
     setValue,
     watch,
+    getValues,
   } = useForm<VehicleFormDataZod>({
-    resolver: zodResolver(VehicleFormScheme),
     mode: 'onChange',
     defaultValues: {
       patente: '',
@@ -154,24 +152,24 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
   }, [watchedPatente]);
 
   const onSubmit = async (data: VehicleFormDataZod) => {
-    if (!assignedCard && !noPhysicalCard) {
-      Alert.alert(
-        'Advertencia',
-        'Elegí: asignar tarjeta, escanear una tarjeta o "Solo QR digital".'
-      );
-      return;
-    }
+    const patente = data.patente.trim().toUpperCase();
+    const sector = data.sector.trim();
 
     const input: VehicleDataWithTime = {
-      ...data,
+      patente,
+      sector,
       establecimiento: establishmentId,
       horaIngreso: new Date().toLocaleTimeString('es-AR', {
         hour: '2-digit',
         minute: '2-digit',
       }),
-      ...(noPhysicalCard && {
-        noPhysicalCard: true,
-      }),
+      ...(data.marca?.trim() ? { marca: data.marca.trim() } : {}),
+      ...(data.modelo?.trim() ? { modelo: data.modelo.trim() } : {}),
+      ...(data.color?.trim() ? { color: data.color.trim() } : {}),
+      ...(data.nombreConductor?.trim() ? { nombreConductor: data.nombreConductor.trim() } : {}),
+      ...(data.telefono?.trim() ? { telefono: data.telefono.trim() } : {}),
+      ...(data.quienSeLleva?.trim() ? { quienSeLleva: data.quienSeLleva.trim() } : {}),
+      ...(assignedCard ? {} : { noPhysicalCard: true }),
     };
     console.log('input: ----------------->', input);
     console.log('quienSeLleva: ----------------->', data.quienSeLleva);
@@ -234,6 +232,30 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
       });
       Alert.alert('Error', 'Hubo un problema al agregar el vehículo. Intenta nuevamente.');
     }
+  };
+
+  const handleFormSubmit = () => {
+    const patente = (watch('patente') ?? '').trim().toUpperCase();
+    const sector = (watch('sector') ?? '').trim();
+
+    if (!patente) {
+      Alert.alert(t('warning'), t('plateRequired'));
+      return;
+    }
+    if (!sector) {
+      Alert.alert(t('warning'), t('sectorRequired'));
+      return;
+    }
+    if (!PATENTE_REGEX.test(patente)) {
+      Alert.alert(t('warning'), 'Patente incorrecta');
+      return;
+    }
+    if (isDisabled) {
+      Alert.alert(t('warning'), 'No se puede ingresar un vehículo inhabilitado');
+      return;
+    }
+
+    void onSubmit({ ...getValues(), patente, sector });
   };
 
   const toggleDriverData = () => {
@@ -365,7 +387,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    placeholder={t('whoTakesVehicle')}
+                    placeholder={`${t('whoTakesVehicle')} (${t('optional')})`}
                     placeholderTextColor={colors.darkGrey}
                   />
                 )}
@@ -401,7 +423,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
                       value={value}
                       onChangeText={onChange}
                       onBlur={onBlur}
-                      placeholder={t('model')}
+                      placeholder={`${t('model')} (${t('optional')})`}
                       placeholderTextColor={colors.darkGrey}
                     />
                   )}
@@ -419,7 +441,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
                       value={value}
                       onChangeText={onChange}
                       onBlur={onBlur}
-                      placeholder={t('color')}
+                      placeholder={`${t('color')} (${t('optional')})`}
                       placeholderTextColor={colors.darkGrey}
                     />
                   )}
@@ -446,7 +468,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
                       value={value}
                       onChangeText={onChange}
                       onBlur={onBlur}
-                      placeholder={t('driverName')}
+                      placeholder={`${t('driverName')} (${t('optional')})`}
                       placeholderTextColor={colors.darkGrey}
                     />
                   )}
@@ -462,7 +484,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
                       value={value}
                       onChangeText={onChange}
                       onBlur={onBlur}
-                      placeholder={t('phone')}
+                      placeholder={`${t('phone')} (${t('optional')})`}
                       placeholderTextColor={colors.darkGrey}
                       keyboardType="phone-pad"
                     />
@@ -485,18 +507,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
               !(watchedSector ?? '').trim()) &&
               styles.submitButtonDisabled,
           ]}
-          onPress={handleSubmit(onSubmit, (invalid) => {
-            if (invalid.establecimiento) {
-              Alert.alert(
-                'Advertencia',
-                'No hay establecimiento seleccionado. Volvé al inicio y elegí un establecimiento.'
-              );
-            } else if (invalid.sector) {
-              Alert.alert('Advertencia', 'Seleccione un sector');
-            } else if (invalid.patente) {
-              Alert.alert('Advertencia', invalid.patente.message ?? 'Patente incorrecta');
-            }
-          })}
+          onPress={handleFormSubmit}
           disabled={
             isPending ||
             isDisabled ||

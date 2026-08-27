@@ -1,55 +1,26 @@
-import { View, Text, ImageBackground, Animated, Image, StyleSheet } from 'react-native';
+import { View, Text, ImageBackground, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
-import { colors, typography } from '../src/config/theme';
+import { colors, typography, spacing } from '../src/config/theme';
 import { CarmanIcon } from '../src/components/CarmanIcon';
 import { WideButton } from '../src/components/WideButton';
-import { useAnimated } from '../src/hooks/useAnimated';
 
 export default function WelcomeScreen() {
-  const animatedValue = useAnimated(0);
-
   const handleContinue = () => {
-    console.log('🚀 Navigating to onboarding...');
     router.push('/onboarding');
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.mainContent}>
-        <ImageBackground
-          source={require('../assets/bg/circles.png')}
-          resizeMode="contain"
-          style={styles.backgroundImage}
-        >
-          {/* Logo Section - 1/4 of screen */}
+      <ImageBackground
+        source={require('../assets/bg/circles.png')}
+        resizeMode="contain"
+        style={styles.backgroundImage}
+      >
+        <View style={styles.content}>
           <View style={styles.logoSection}>
             <CarmanIcon />
           </View>
 
-          {/* Animated Car Section - 2/4 of screen */}
-          <Animated.View
-            style={[
-              styles.carSection,
-              {
-                transform: [
-                  {
-                    translateX: animatedValue.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [-50, 0],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <Image
-              source={require('../assets/images/car-frame.png')}
-              resizeMode="center"
-              style={styles.carImage}
-            />
-          </Animated.View>
-
-          {/* Text Section - 1/4 of screen */}
           <View style={styles.textSection}>
             <Text style={styles.welcomeTitle}>
               Gestión de estacionamientos y logística de conducción
@@ -58,15 +29,11 @@ export default function WelcomeScreen() {
               Bienvenidos a la App Carman, una experiencia innovadora diseñada para brindar mayor agilidad y comodidad en el servicio de estacionamiento.
             </Text>
           </View>
-        </ImageBackground>
-      </View>
+        </View>
+      </ImageBackground>
 
-      {/* Button Section - 1/6 of screen */}
       <View style={styles.buttonSection}>
-        <WideButton
-          title="Continuar"
-          onPress={handleContinue}
-        />
+        <WideButton title="Continuar" onPress={handleContinue} />
       </View>
     </View>
   );
@@ -76,55 +43,47 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.blueBackGround,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  mainContent: {
-    height: '83.33%', // 5/6 of screen
   },
   backgroundImage: {
-    height: '100%',
+    flex: 1,
+    width: '100%',
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing['2xl'],
   },
   logoSection: {
-    height: '25%', // 1/4 of main content
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  carSection: {
-    height: '50%', // 2/4 of main content
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: -176, // -ml-44 equivalent (44 * 4 = 176)
-  },
-  carImage: {
-    height: 200,
-    width: 300,
+    transform: [{ scale: 1.4 }],
   },
   textSection: {
-    height: '25%', // 1/4 of main content
+    flex: 1,
     width: '100%',
-    justifyContent: 'space-evenly',
-    alignSelf: 'center',
-    paddingHorizontal: 24, // px-6 equivalent
+    justifyContent: 'center',
+    gap: spacing.md,
+    paddingBottom: spacing.xl,
   },
   welcomeTitle: {
     fontSize: typography.sizes.lg,
-    lineHeight: 20, // leading-5 equivalent
+    lineHeight: 24,
     color: colors.white,
     fontWeight: typography.weights.semibold,
     textAlign: 'center',
   },
   welcomeBody: {
-    paddingVertical: 20, // py-5 equivalent
     fontSize: typography.sizes.base,
-    lineHeight: 20, // leading-5 equivalent
+    lineHeight: 22,
     color: colors.white,
     textAlign: 'center',
+    opacity: 0.9,
   },
   buttonSection: {
-    height: '16.67%', // 1/6 of screen
-    width: '100%',
-    justifyContent: 'center',
-    paddingHorizontal: 40, // px-10 equivalent
+    paddingHorizontal: spacing['2xl'],
+    paddingBottom: spacing['2xl'],
   },
 });

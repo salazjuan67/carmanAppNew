@@ -17,6 +17,7 @@ import { IconButton } from '../components/IconButton';
 import { WideButton } from '../components/WideButton';
 import { colors, spacing, typography, borderRadius } from '../config/theme';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CarmanIcon } from '../components/CarmanIcon';
 import { Vehicle, VehicleState } from '../types/vehicle';
 import { useUpdateState } from '../hooks/useUpdateState';
@@ -46,6 +47,17 @@ export const DetailsScreen = ({ id }: { id: string }) => {
   const [showCardInfoModal, setShowCardInfoModal] = useState(false);
   const shineAnimation = useRef(new Animated.Value(0)).current;
   const { t } = useLanguage();
+  const insets = useSafeAreaInsets();
+
+  const backTop = (insets.top > 0 ? insets.top : 50) + 8;
+
+  const handleGoBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/home');
+    }
+  };
 
   const {
     data: vehicle,
@@ -123,7 +135,7 @@ export const DetailsScreen = ({ id }: { id: string }) => {
           Alert.alert('Vehiculo egresado', response?.message || 'El vehiculo ha sido egresado con exito', [
             {
               text: 'OK',
-              onPress: router.back,
+              onPress: handleGoBack,
             },
           ]);
         }
@@ -212,7 +224,7 @@ export const DetailsScreen = ({ id }: { id: string }) => {
       <Dialog
         message={t('errorLoadingVehicle')}
         title={t('unexpectedError')}
-        btnAccept={router.back}
+        btnAccept={handleGoBack}
         showDialog={vehicleHasErr}
       />
     );
@@ -229,12 +241,12 @@ export const DetailsScreen = ({ id }: { id: string }) => {
           style={styles.headerContainer}
         >
           {/* Botón de regreso */}
-          <View style={styles.backButtonContainer}>
-            <IconButton icon={<ChevronLeft size={25} color="black" />} onPress={router.back} />
+          <View style={[styles.backButtonContainer, { top: backTop }]}>
+            <IconButton icon={<ChevronLeft size={25} color="black" />} onPress={handleGoBack} />
           </View>
 
           {/* Información principal */}
-          <View style={styles.mainInfoContainer}>
+          <View style={styles.mainInfoContainer} pointerEvents="box-none">
             <View style={styles.infoRow}>
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>{t('plate')}</Text>
@@ -596,7 +608,8 @@ const styles = StyleSheet.create({
   backButtonContainer: {
     position: 'absolute',
     left: 16,
-    top: 50,
+    zIndex: 20,
+    elevation: 20,
   },
   mainInfoContainer: {
     flex: 1,

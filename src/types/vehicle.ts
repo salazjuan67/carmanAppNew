@@ -146,20 +146,29 @@ export interface VehicleStats {
 
 import { z } from 'zod';
 
+// Regex para validación de patente argentina (vieja, Mercosur y variantes)
+export const PATENTE_REGEX = /^[a-zA-Z]{3}[0-9]{3}$|^[a-zA-Z]{2}[0-9]{3}[a-zA-Z]{2}$|^[a-zA-Z]{2}[0-9]{3}[a-zA-Z]{3}$/;
+
+/** Campos opcionales: vacío → undefined para no enviar al backend ni fallar validación. */
+const optionalString = z.preprocess(
+  (val) => (val === '' || val === null || val === undefined ? undefined : val),
+  z.string().optional()
+);
+
 // Esquemas de validación Zod — obligatorios: patente, sector y establecimiento (este último viene del contexto)
 export const VehicleFormScheme = z.object({
   patente: z
     .string()
     .min(1, 'La patente es requerida')
-    .regex(/[a-zA-Z]{3}[0-9]{3}$|[a-zA-Z]{2}[0-9]{3}[a-zA-Z]{2}$/, 'Patente incorrecta'),
+    .regex(PATENTE_REGEX, 'Patente incorrecta'),
   sector: z.string().min(1, 'El sector es requerido'),
   establecimiento: z.string().min(1),
-  marca: z.string().optional(),
-  modelo: z.string().optional(),
-  color: z.string().optional(),
-  nombreConductor: z.string().optional(),
-  telefono: z.string().optional(),
-  quienSeLleva: z.string().optional(),
+  marca: optionalString,
+  modelo: optionalString,
+  color: optionalString,
+  nombreConductor: optionalString,
+  telefono: optionalString,
+  quienSeLleva: optionalString,
 });
 
 export type VehicleFormDataZod = z.infer<typeof VehicleFormScheme>;
@@ -167,9 +176,6 @@ export type VehicleFormDataZod = z.infer<typeof VehicleFormScheme>;
 export type VehicleDataWithTime = VehicleFormDataZod & { 
   horaIngreso: string; 
 };
-
-// Regex para validación de patente argentina
-export const PATENTE_REGEX = /^[a-zA-Z]{3}[0-9]{3}$|^[a-zA-Z]{2}[0-9]{3}[a-zA-Z]{2}$|^[a-zA-Z]{2}[0-9]{3}[a-zA-Z]{3}$/;
 
 // Tipos para tarjetas físicas
 export interface PhysicalCard {
