@@ -15,7 +15,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.carmanapp.baires",
-      "buildNumber": "17",
+      "buildNumber": "18",
       "supportsTablet": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -28,7 +28,7 @@
       }
     },
     "android": {
-      "versionCode": 16,
+      "versionCode": 17,
       "package": "com.darey16.carman",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -72,7 +72,8 @@
             "minSdkVersion": 24,
             "targetSdkVersion": 35,
             "compileSdkVersion": 35,
-            "usesCleartextTraffic": true
+            "usesCleartextTraffic": true,
+            "newArchEnabled": false
           },
           "ios": {
             "flipper": false,

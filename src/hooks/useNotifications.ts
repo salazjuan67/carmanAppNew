@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { InteractionManager } from 'react-native';
 import { notificationService } from '../services/notificationService';
 import { oneSignalService } from '../services/oneSignalService';
 import { useAppStore } from '../store/appStore';
@@ -8,6 +9,9 @@ export const useNotifications = () => {
   const [permissionGranted, setPermissionGranted] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
     const initializeNotifications = async () => {
       try {
         const expoSuccess = await notificationService.initialize();
@@ -18,12 +22,14 @@ export const useNotifications = () => {
         console.warn('Expo notifications init failed:', e);
       }
 
+      if (cancelled) return;
+
       try {
         const oneSignalSuccess = await oneSignalService.initialize();
         if (oneSignalSuccess) {
           console.log('✅ OneSignal initialized successfully');
           const hasPermission = await oneSignalService.checkPermissionStatus();
-          setPermissionGranted(hasPermission);
+          if (!cancelled) setPermissionGranted(hasPermission);
         } else {
           console.log('ℹ️ OneSignal not available on this platform/build');
         }
@@ -32,7 +38,17 @@ export const useNotifications = () => {
       }
     };
 
-    void initializeNotifications();
+    const interaction = InteractionManager.runAfterInteractions(() => {
+      timer = setTimeout(() => {
+        void initializeNotifications();
+      }, 2500);
+    });
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      interaction.cancel?.();
+    };
   }, []);
 
   useEffect(() => {

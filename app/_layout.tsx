@@ -1,10 +1,9 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { AppState, AppStateStatus, InteractionManager } from 'react-native';
+import { AppState, AppStateStatus } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useAuth } from '../src/hooks/useAuth';
-import { useNotifications } from '../src/hooks/useNotifications';
 import { QueryProvider } from '../src/providers/QueryProvider';
 import { LanguageProvider } from '../src/contexts/LanguageContext';
 import '../global.css';
@@ -14,10 +13,8 @@ SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 export default function RootLayout() {
   const { initialize } = useAuth();
-  const { requestPermission, shouldShowPermissionPrompt } = useNotifications();
 
   useEffect(() => {
-    // Show UI ASAP — never block splash on OneSignal / auth
     const splashTimer = setTimeout(() => {
       void SplashScreen.hideAsync().catch(() => undefined);
     }, 800);
@@ -26,22 +23,8 @@ export default function RootLayout() {
       console.warn('Auth initialize failed:', e);
     });
 
-    // OneSignal TurboModule load can throw; defer until after first paint
-    const interaction = InteractionManager.runAfterInteractions(() => {
-      try {
-        if (shouldShowPermissionPrompt()) {
-          setTimeout(() => {
-            void requestPermission().catch(() => undefined);
-          }, 2000);
-        }
-      } catch (e) {
-        console.warn('Notification prompt init failed:', e);
-      }
-    });
-
     return () => {
       clearTimeout(splashTimer);
-      interaction.cancel?.();
     };
   }, []);
 

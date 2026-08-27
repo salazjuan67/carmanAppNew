@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { translations, Language, TranslationKey } from '../config/translations';
 
 const LANGUAGE_STORAGE_KEY = 'user-language';
+const LANGUAGE_USER_SELECTED_KEY = 'user-language-selected';
 
 interface LanguageContextType {
   language: Language;
@@ -25,18 +26,33 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
 
   const loadLanguage = async () => {
     try {
-      const savedLanguage = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
-      if (savedLanguage && (savedLanguage === 'es' || savedLanguage === 'en')) {
-        setLanguage(savedLanguage as Language);
+      const [savedLanguage, userSelected] = await Promise.all([
+        AsyncStorage.getItem(LANGUAGE_STORAGE_KEY),
+        AsyncStorage.getItem(LANGUAGE_USER_SELECTED_KEY),
+      ]);
+
+      // Español por defecto; inglés solo si el usuario lo eligió explícitamente en el selector
+      if (userSelected === 'true' && savedLanguage === 'en') {
+        setLanguage('en');
+        return;
+      }
+
+      setLanguage('es');
+      if (savedLanguage !== 'es') {
+        await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, 'es');
       }
     } catch (error) {
       console.error('Error loading language:', error);
+      setLanguage('es');
     }
   };
 
   const changeLanguage = async (newLanguage: Language) => {
     try {
-      await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, newLanguage);
+      await AsyncStorage.multiSet([
+        [LANGUAGE_STORAGE_KEY, newLanguage],
+        [LANGUAGE_USER_SELECTED_KEY, 'true'],
+      ]);
       setLanguage(newLanguage);
     } catch (error) {
       console.error('Error saving language:', error);
@@ -67,4 +83,3 @@ export const useLanguage = (): LanguageContextType => {
   }
   return context;
 };
-

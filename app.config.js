@@ -32,6 +32,7 @@ const basePlugins = (appJson.expo.plugins || [])
           },
           android: {
             ...((p[1] && p[1].android) || {}),
+            newArchEnabled: false,
           },
         },
       ];

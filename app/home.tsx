@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -31,6 +31,8 @@ import { useLanguage } from '../src/contexts/LanguageContext';
 import { isSessionExpiredVehicleError } from '../src/services/sessionExpired';
 import { isIngresosEstado, isSolicitadosEstado } from '../src/utils/vehicleEstado';
 import { useResponsiveLayout } from '../src/hooks/useResponsiveLayout';
+import { useNotifications } from '../src/hooks/useNotifications';
+import { PermissionPrompt } from '../src/components/PermissionPrompt';
 
 export default function HomeScreen() {
   const { logout, user } = useAuth();
@@ -83,6 +85,8 @@ const HomeScreenContent = React.memo(function HomeScreenContent({ logout, user, 
   handleLogout: () => void;
 }) {
   const { t } = useLanguage();
+  const { requestPermission, shouldShowPermissionPrompt } = useNotifications();
+  const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
   const {
     isTablet,
     contentMaxWidth,
@@ -138,6 +142,15 @@ const HomeScreenContent = React.memo(function HomeScreenContent({ logout, user, 
   );
 
   const setSelectedEstablishmentInStore = useEstablishmentStore((state) => state.setSelectedEstablishment);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (shouldShowPermissionPrompt()) {
+        setShowPermissionPrompt(true);
+      }
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [shouldShowPermissionPrompt]);
 
   const handleNewVehicle = () => {
     if (shiftLoading) return;
@@ -267,6 +280,13 @@ const HomeScreenContent = React.memo(function HomeScreenContent({ logout, user, 
         </TouchableOpacity>
       </View>
       </View>
+
+      {showPermissionPrompt ? (
+        <PermissionPrompt
+          onRequestPermission={requestPermission}
+          onDismiss={() => setShowPermissionPrompt(false)}
+        />
+      ) : null}
     </View>
   );
 });
