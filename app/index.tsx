@@ -9,8 +9,8 @@ export default function WelcomeScreen() {
   const animatedValue = useAnimated(0);
 
   const handleContinue = () => {
-    console.log('🚀 Navigating to auth screen...');
-    router.push('/auth');
+    console.log('🚀 Navigating to onboarding...');
+    router.push('/onboarding');
   };
 
   return (

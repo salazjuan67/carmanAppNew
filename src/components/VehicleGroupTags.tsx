@@ -1,9 +1,16 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { VehicleTag } from './VehicleTag';
 import { Vehicle } from '../types/vehicle';
 import { colors, spacing } from '../config/theme';
 import { useLanguage } from '../contexts/LanguageContext';
+import {
+  getEntregaSortValue,
+  getIngresoSortValue,
+  getSolicitadoSortValue,
+  sortVehiclesBy,
+} from '../utils/vehicleSorting';
+import { isEgresosEstado, isIngresosEstado, isSolicitadosEstado } from '../utils/vehicleEstado';
 
 interface VehicleGroupTagsProps {
   vehicles: Vehicle[];
@@ -17,30 +24,33 @@ export const VehicleGroupTags: React.FC<VehicleGroupTagsProps> = ({
   onLayerChange 
 }) => {
   const { t } = useLanguage();
-  const sortVehicles = (el1: Vehicle, el2: Vehicle) => {
-    const fecha1 = el1.createdAt || el1.horaIngreso;
-    const fecha2 = el2.createdAt || el2.horaIngreso;
-    return new Date(fecha1).getTime() - new Date(fecha2).getTime();
-  };
 
-  const redVehicles = vehicles
-    .filter((item) => item.estado === 'INGRESADO' || item.estado === 'ESTACIONADO')
-    .sort(sortVehicles);
+  const redVehicles = useMemo(
+    () =>
+      sortVehiclesBy(
+        vehicles.filter((item) => isIngresosEstado(item.estado)),
+        getIngresoSortValue
+      ),
+    [vehicles]
+  );
 
-  const yellowVehicles = vehicles
-    .filter((item) => item.estado === 'SOLICITADO' || item.estado === 'EN CAMINO')
-    .sort(sortVehicles);
+  const yellowVehicles = useMemo(
+    () =>
+      sortVehiclesBy(
+        vehicles.filter((item) => isSolicitadosEstado(item.estado)),
+        getSolicitadoSortValue
+      ),
+    [vehicles]
+  );
 
-  const greenVehicles = vehicles
-    .filter((item) => item.estado === 'ENTREGADO' || item.estado === 'FACTURADO')
-    .sort(sortVehicles);
-
-  // Set default layer to yellow on mount
-  useEffect(() => {
-    if (yellowVehicles.length > 0) {
-      onLayerChange('yellow', yellowVehicles);
-    }
-  }, []);
+  const greenVehicles = useMemo(
+    () =>
+      sortVehiclesBy(
+        vehicles.filter((item) => isEgresosEstado(item.estado)),
+        getEntregaSortValue
+      ),
+    [vehicles]
+  );
 
   const handlePress = (group: 'red' | 'yellow' | 'green') => () => {
     const mapVehicles = {
@@ -55,6 +65,7 @@ export const VehicleGroupTags: React.FC<VehicleGroupTagsProps> = ({
   return (
     <View style={styles.container}>
       <VehicleTag
+        layer="red"
         selected={selectedLayer === 'red'}
         state="INGRESADO"
         displayText={t('ingresos')}
@@ -62,6 +73,7 @@ export const VehicleGroupTags: React.FC<VehicleGroupTagsProps> = ({
         onPress={handlePress('red')}
       />
       <VehicleTag
+        layer="yellow"
         selected={selectedLayer === 'yellow'}
         state="SOLICITADO"
         displayText={t('solicitados')}
@@ -69,6 +81,7 @@ export const VehicleGroupTags: React.FC<VehicleGroupTagsProps> = ({
         onPress={handlePress('yellow')}
       />
       <VehicleTag
+        layer="green"
         selected={selectedLayer === 'green'}
         state="ENTREGADO"
         displayText={t('egresos')}
@@ -81,10 +94,11 @@ export const VehicleGroupTags: React.FC<VehicleGroupTagsProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    height: 60,
+    minHeight: 72,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs,
   },
 });

@@ -2,8 +2,9 @@ import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ImageBackgr
 import { useState } from 'react';
 import { router, useRouter } from 'expo-router';
 import { colors, spacing, borderRadius, typography } from '../src/config/theme';
+import { APP_CONFIG } from '../src/config/constants';
 import { useAuth } from '../src/hooks/useAuth';
-import { CarmanIcon } from '../src/components/CarmanIcon';
+import { AnimatedCarmanIcon } from '../src/components/AnimatedCarmanIcon';
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -21,32 +22,43 @@ export default function AuthScreen() {
   };
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    // Trim email to remove leading/trailing whitespace
+    const trimmedEmail = email.trim();
+    
+    if (!trimmedEmail || !password) {
       Alert.alert('Error', 'Por favor completa todos los campos');
       return;
     }
 
     // Validar formato de email básico
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(trimmedEmail)) {
       Alert.alert('Error', 'Por favor ingresa un correo electrónico válido');
       return;
     }
 
+    // Validar longitud mínima de contraseña
+    if (password.length < 3) {
+      Alert.alert('Error', 'La contraseña debe tener al menos 3 caracteres');
+      return;
+    }
+
     try {
-      const result = await login(email, password);
+      const result = await login(trimmedEmail, password);
       
       if (result.success) {
         // Login exitoso - navegar a home
         router.push('/home');
       } else {
-        // Mostrar error de login
+        // Mostrar error de login con mensaje descriptivo
+        const errorMessage = result.error || 'Error al iniciar sesión. Por favor verifica tus credenciales.';
         Alert.alert(
           'Error de Autenticación', 
-          result.error || 'Credenciales incorrectas. Por favor verifica tu email y contraseña.'
+          errorMessage
         );
       }
     } catch (error) {
+      console.error('Login error:', error);
       Alert.alert(
         'Error', 
         'Ocurrió un error inesperado. Por favor intenta nuevamente.'
@@ -67,7 +79,7 @@ export default function AuthScreen() {
           resizeMode="cover"
           style={styles.backgroundImage}
         >
-          <CarmanIcon />
+          <AnimatedCarmanIcon />
         </ImageBackground>
       </TouchableWithoutFeedback>
       
@@ -106,7 +118,7 @@ export default function AuthScreen() {
         </TouchableOpacity>
         
         <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>Versión 1.0.0</Text>
+          <Text style={styles.versionText}>Versión {APP_CONFIG.VERSION}</Text>
         </View>
       </View>
     </KeyboardAvoidingView>

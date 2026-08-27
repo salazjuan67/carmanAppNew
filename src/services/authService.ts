@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient, LoginRequest, LoginResponse, User } from './apiClient';
 import { STORAGE_KEYS } from '../config/constants';
+import { oneSignalService } from './oneSignalService';
 
 export interface AuthState {
   isAuthenticated: boolean;
@@ -58,6 +59,10 @@ class AuthService {
             refreshToken,
             isLoading: false,
           };
+          
+          // Configure OneSignal tags for the restored user
+          await this.configureOneSignalTags(user);
+          
           console.log('✅ User session restored');
           this.notifyListeners();
           return true;
@@ -113,6 +118,9 @@ class AuthService {
             isLoading: false,
           };
 
+          // Configure OneSignal tags for the authenticated user
+          await this.configureOneSignalTags(user);
+
           console.log('✅ Login successful');
           this.notifyListeners();
           return { success: true };
@@ -132,15 +140,78 @@ class AuthService {
       } else {
         this.setLoading(false);
         console.log('❌ Login failed - response:', response);
-        return { success: false, error: response.error || 'Login failed - invalid response structure' };
+        
+        // Provide more descriptive error messages
+        let errorMessage = response.error || 'Error al iniciar sesión';
+        
+        // Check for common validation errors
+        if (errorMessage.includes('422') || errorMessage.includes('validación') || errorMessage.includes('validation')) {
+          errorMessage = 'Error de validación. Verifica que el email y contraseña sean correctos.';
+        } else if (errorMessage.includes('401') || errorMessage.includes('no autorizado') || errorMessage.includes('unauthorized')) {
+          errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
+        } else if (errorMessage.includes('400') || errorMessage.includes('bad request')) {
+          errorMessage = 'Solicitud inválida. Verifica los datos ingresados.';
+        } else if (errorMessage.includes('conexión') || errorMessage.includes('connection') || errorMessage.includes('network')) {
+          errorMessage = 'Error de conexión. Verifica tu conexión a internet.';
+        }
+        
+        return { success: false, error: errorMessage };
       }
     } catch (error) {
       this.setLoading(false);
       console.error('❌ Login error:', error);
+      
+      // Provide user-friendly error messages
+      let errorMessage = 'Error al iniciar sesión';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('fetch') || error.message.includes('network')) {
+          errorMessage = 'Error de conexión. Verifica tu conexión a internet.';
+        } else if (error.message.includes('422')) {
+          errorMessage = 'Error de validación. Verifica que el email y contraseña sean correctos.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Login failed' 
+        error: errorMessage
       };
+    }
+  }
+
+  /**
+   * Limpia sesión local tras 401 (token vencido). No llama al API de logout.
+   */
+  async clearLocalSessionAfterUnauthorized(): Promise<void> {
+    try {
+      console.log('🔐 Sesión inválida (401) — limpiando almacenamiento local');
+      try {
+        await oneSignalService.setUserTags({});
+      } catch (e) {
+        console.warn('⚠️ OneSignal clear on session expire:', e);
+      }
+      await this.clearStoredData();
+      this.authState = {
+        isAuthenticated: false,
+        user: null,
+        token: null,
+        refreshToken: null,
+        isLoading: false,
+      };
+      this.notifyListeners();
+    } catch (error) {
+      console.error('❌ clearLocalSessionAfterUnauthorized:', error);
+      await this.clearStoredData();
+      this.authState = {
+        isAuthenticated: false,
+        user: null,
+        token: null,
+        refreshToken: null,
+        isLoading: false,
+      };
+      this.notifyListeners();
     }
   }
 
@@ -153,6 +224,14 @@ class AuthService {
       
       // Call logout API
       await apiClient.logout();
+      
+      // Clear OneSignal tags
+      try {
+        await oneSignalService.setUserTags({});
+        console.log('✅ OneSignal tags cleared');
+      } catch (oneSignalError) {
+        console.error('❌ Error clearing OneSignal tags:', oneSignalError);
+      }
       
       // Clear stored data
       await this.clearStoredData();
@@ -210,12 +289,10 @@ class AuthService {
         return true;
       } else {
         console.log('❌ Token refresh failed:', response.error);
-        await this.logout();
         return false;
       }
     } catch (error) {
       console.error('❌ Token refresh error:', error);
-      await this.logout();
       return false;
     }
   }
@@ -281,6 +358,33 @@ class AuthService {
       ]);
     } catch (error) {
       console.error('❌ Error clearing stored data:', error);
+    }
+  }
+
+  /**
+   * Configure OneSignal tags for the authenticated user
+   */
+  private async configureOneSignalTags(user: User): Promise<void> {
+    try {
+      console.log('🔔 Configuring OneSignal tags for user:', user._id);
+      
+      // Set establishment_id tag if user has an establishment
+      if (user.establecimiento?._id) {
+        await oneSignalService.setUserTags({
+          establishment_id: user.establecimiento._id,
+          user_id: user._id,
+          user_email: user.email,
+        });
+        console.log('✅ OneSignal tags configured:', {
+          establishment_id: user.establecimiento._id,
+          user_id: user._id,
+          user_email: user.email,
+        });
+      } else {
+        console.log('⚠️ User has no establishment, skipping OneSignal tag configuration');
+      }
+    } catch (error) {
+      console.error('❌ Error configuring OneSignal tags:', error);
     }
   }
 

@@ -648,7 +648,115 @@ curl -X POST https://onesignal.com/api/v1/notifications \
 - Implement retry logic with exponential backoff
 - Monitor API usage
 
-### 3. Data Validation
+### 3. State Change Notification Endpoint
+
+#### New Endpoint: POST /api/notifications/state-change
+
+This endpoint receives notifications from the mobile app when a vehicle state changes and sends OneSignal push notifications to users in the establishment.
+
+```javascript
+// POST /api/notifications/state-change
+app.post('/api/notifications/state-change', async (req, res) => {
+  try {
+    const { 
+      vehicleId, 
+      patente, 
+      establishmentId, 
+      previousState, 
+      newState, 
+      timestamp 
+    } = req.body;
+    
+    console.log('📡 Received state change notification:', { 
+      vehicleId, 
+      patente, 
+      establishmentId, 
+      newState 
+    });
+    
+    // Only send notification for SOLICITADO state
+    if (newState === 'SOLICITADO') {
+      // Send OneSignal push notification
+      const notification = {
+        app_id: "2e8adea2-edb7-425c-acda-17df0ef92d9f",
+        included_segments: ["All"],
+        filters: [
+          { 
+            field: "tag", 
+            key: "establishment_id", 
+            relation: "=", 
+            value: establishmentId 
+          }
+        ],
+        contents: { 
+          en: `Vehículo ${patente} ha sido solicitado`,
+          es: `Vehículo ${patente} ha sido solicitado`
+        },
+        headings: {
+          en: "Vehículo Solicitado",
+          es: "Vehículo Solicitado"
+        },
+        data: {
+          type: "vehicle_requested",
+          vehicleId: vehicleId,
+          patente: patente,
+          establishmentId: establishmentId
+        },
+        priority: 10, // Alta prioridad para notificaciones visibles
+        sound: 'default'
+      };
+      
+      const response = await fetch('https://onesignal.com/api/v1/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${process.env.ONESIGNAL_REST_API_KEY}`
+        },
+        body: JSON.stringify(notification)
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ OneSignal notification sent successfully:', result.id);
+        res.json({ success: true, notificationId: result.id });
+      } else {
+        const error = await response.text();
+        console.error('❌ Failed to send OneSignal notification:', error);
+        res.status(500).json({ error: 'Failed to send notification' });
+      }
+    } else {
+      res.json({ success: true, message: 'No notification needed' });
+    }
+  } catch (error) {
+    console.error('❌ Error in state-change notification:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+```
+
+#### Request Body Format
+
+```json
+{
+  "vehicleId": "string",
+  "patente": "string", 
+  "establishmentId": "string",
+  "previousState": "string",
+  "newState": "string",
+  "timestamp": "2024-01-01T12:00:00.000Z"
+}
+```
+
+#### Response Format
+
+```json
+{
+  "success": true,
+  "notificationId": "onesignal-notification-id"
+}
+```
+
+### 4. Data Validation
 - Validate all input data before sending
 - Sanitize user-generated content
 - Implement proper error handling

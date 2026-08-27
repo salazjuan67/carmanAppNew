@@ -15,9 +15,9 @@ export const useAddShift = () => {
         queryKey: ['shift'],
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error('-- useAddShift --', error.message);
-      Alert.alert('Hubo un Error', 'No se pudo abrir el turno, reinicie la app');
+      Alert.alert('Hubo un Error', error.message || 'No se pudo abrir el turno');
     },
   });
 

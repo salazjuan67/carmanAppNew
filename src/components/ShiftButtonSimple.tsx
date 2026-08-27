@@ -29,12 +29,15 @@ export const ShiftButtonSimple: React.FC<ShiftButtonSimpleProps> = ({
   const setShift = useShiftStore((state) => state.setShift);
 
   // Solo consultar el turno del establecimiento actual
-  const { data: shift, isLoading, refetch } = useQuery({
+  const { data: shift, isLoading, isError, refetch } = useQuery({
     queryKey: ['shift', establishmentId],
     queryFn: () => getEstablishmentShift(establishmentId),
     enabled: !!establishmentId,
-    staleTime: 0, // Cambiar a 0 para que siempre refresque
+    staleTime: 0,
+    retry: 1,
   });
+
+  const hasActiveShift = !!shift?._id;
 
   // Actualizar el store cuando cambie el turno
   useEffect(() => {
@@ -80,11 +83,6 @@ export const ShiftButtonSimple: React.FC<ShiftButtonSimpleProps> = ({
     }
   };
 
-  // Log para debugging
-  console.log('🔄 ShiftButtonSimple - establishmentId:', establishmentId);
-  console.log('🔄 ShiftButtonSimple - shift:', shift);
-  console.log('🔄 ShiftButtonSimple - isLoading:', isLoading);
-
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -93,16 +91,28 @@ export const ShiftButtonSimple: React.FC<ShiftButtonSimpleProps> = ({
     );
   }
 
-  if (!!shift) {
+  if (isError) {
     return (
-      <>
+      <Pressable
+        style={styles.button}
+        onPress={() => refetch()}
+        accessibilityLabel={t('startShift')}
+      >
+        <LockKeyholeOpen size={20} color="white" />
+      </Pressable>
+    );
+  }
+
+  if (hasActiveShift && shift) {
+    return (
+      <View style={styles.wrapper}>
         <Pressable
           style={styles.button}
           onPress={() => setShowDialog(true)}
         >
           <LockKeyhole size={20} color="white" />
         </Pressable>
-        
+
         <Modal
           animationType="slide"
           transparent={true}
@@ -113,8 +123,9 @@ export const ShiftButtonSimple: React.FC<ShiftButtonSimpleProps> = ({
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>{t('endShift')}</Text>
               <Text style={styles.modalText}>
-                {t('confirmEndShift')}{' '}
-                <Text style={styles.boldText}>{shift.nombre}</Text>?
+                {`${t('confirmEndShift')} `}
+                <Text style={styles.boldText}>{shift.nombre}</Text>
+                {'?'}
               </Text>
               <View style={styles.modalButtons}>
                 <TouchableOpacity
@@ -134,19 +145,20 @@ export const ShiftButtonSimple: React.FC<ShiftButtonSimpleProps> = ({
             </View>
           </View>
         </Modal>
-      </>
+      </View>
     );
-  } else {
-    return (
-      <>
-        <Pressable
-          style={styles.button}
-          onPress={() => setShowStartModal(true)}
-        >
-          <LockKeyholeOpen size={20} color="white" />
-        </Pressable>
+  }
 
-        <Modal
+  return (
+    <View style={styles.wrapper}>
+      <Pressable
+        style={styles.button}
+        onPress={() => setShowStartModal(true)}
+      >
+        <LockKeyholeOpen size={20} color="white" />
+      </Pressable>
+
+      <Modal
           animationType="slide"
           transparent={true}
           visible={showStartModal}
@@ -199,30 +211,30 @@ export const ShiftButtonSimple: React.FC<ShiftButtonSimpleProps> = ({
             </View>
           </View>
         </Modal>
-      </>
-    );
-  }
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
+  wrapper: {
+    width: 40,
+    height: 40,
+  },
   loadingContainer: {
     width: 40,
     height: 40,
-    backgroundColor: colors.white,
+    backgroundColor: 'rgba(255,255,255,0.14)',
     borderRadius: borderRadius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   spinner: {
     width: 16,
     height: 16,
     borderWidth: 2,
-    borderColor: colors.primary[500],
+    borderColor: 'rgba(255,255,255,0.55)',
     borderTopColor: 'transparent',
     borderRadius: 8,
   },

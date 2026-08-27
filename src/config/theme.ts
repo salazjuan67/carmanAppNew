@@ -17,6 +17,7 @@ export const colors = {
     INGRESADO: '#F09393',
     'EN CAMINO': '#F6EB88',
     SOLICITADO: '#F6EB88',
+    'EN LA PUERTA': '#F6EB88',
     ENTREGADO: '#9AF292',
     FACTURADO: '#9AF292',
   },

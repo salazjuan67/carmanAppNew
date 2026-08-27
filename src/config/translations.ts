@@ -52,6 +52,7 @@ export const translations = {
     model: 'Modelo',
     color: 'Color',
     driverData: 'Datos del Conductor',
+    usePhysicalCardOption: 'Usar tarjeta física (escanear o asignar)',
     takePhoto: 'Tomar Foto',
     selectFromGallery: 'Seleccionar de Galería',
     cameraPermission: 'Permiso de Cámara',
@@ -67,10 +68,15 @@ export const translations = {
     noEstablishmentSelected: 'No se ha seleccionado un establecimiento.',
     selectEstablishmentMessage: 'Por favor, selecciona un establecimiento desde la pantalla principal.',
     backToHome: 'Volver al Inicio',
+    noActiveShiftTitle: 'No hay un turno activo',
+    noActiveShiftMessage: 'Primero debes crear un turno para este establecimiento.',
+    goManageShifts: 'Ir a administrar turnos',
     
     // Botones de estado
     request: 'Solicitar',
+    atTheDoor: 'En la puerta',
     enter: 'Ingresar',
+    backToParked: 'Volver a estacionado',
     park: 'Estacionar',
     onWay: 'En camino',
     exit: 'Egresar',
@@ -102,13 +108,23 @@ export const translations = {
     recurrent: 'Recurrente',
     disabled: 'Inhabilitado',
     
+    // Notificaciones
+    notifications: 'Notificaciones',
+    vehicleRequested: 'Vehículo Solicitado',
+    vehicleRequestedMessage: 'El vehículo {patente} ha sido solicitado en {establishment}',
+    noNotifications: 'No hay notificaciones',
+    noNotificationsMessage: 'Recibirás notificaciones cuando se soliciten vehículos en tu establecimiento.',
+    clearNotifications: 'Limpiar notificaciones',
+    clearNotificationsMessage: '¿Estás seguro de que quieres eliminar todas las notificaciones?',
+    clear: 'Limpiar',
+    
     // Idioma
     selectLanguage: 'Seleccionar Idioma',
     spanish: 'Español',
     english: 'English',
     
     // Home Screen
-    hello: '¡Hola! 👋',
+    hello: '¡Hola!',
     welcome: 'Bienvenido',
     toCarman: 'a Carman',
     logout: 'Cerrar Sesión',
@@ -118,6 +134,8 @@ export const translations = {
     // Vehicle List
     searchByPlate: 'Buscar por patente...',
     loadingVehicles: 'Cargando vehículos...',
+    loadingVehiclesSlowHint:
+      'Si tarda mucho, revisá la conexión o deslizá hacia abajo para actualizar al volver al inicio.',
     noVehiclesToShow: 'No hay vehículos para mostrar',
     noVehiclesFound: 'No se encontraron vehículos con patente',
     ingresos: 'Ingresos',
@@ -144,6 +162,38 @@ export const translations = {
     notLoaded: 'Sin cargar',
     errorLoadingVehicle: 'Error al cargar el vehículo',
     unexpectedError: 'Error inesperado',
+    
+    // Physical Cards
+    physicalCard: 'Tarjeta Física',
+    assignCard: 'Asignar Tarjeta',
+    assigning: 'Asignando...',
+    noPhysicalCard: 'No lleva tarjeta',
+    cardAssigned: 'Tarjeta Asignada',
+    cardAssignedMessage: 'Se asignó la tarjeta {cardNumber}. Busque la tarjeta física correspondiente.',
+    cardChanged: 'Tarjeta Cambiada',
+    cardChangedMessage: 'Se cambió a la tarjeta {cardNumber}. Busque la nueva tarjeta física.',
+    changeCard: 'Cambiar Tarjeta',
+    selectCard: 'Seleccionar Tarjeta',
+    selectCardSubtitle: 'Elige una tarjeta disponible para reemplazar la actual',
+    loadingCards: 'Cargando tarjetas...',
+    noCardsAvailable: 'No hay tarjetas disponibles',
+    currentCard: 'ACTUAL',
+    cardAvailable: 'Disponible',
+    cardCurrentlyAssigned: 'Tarjeta actualmente asignada',
+    changeToCard: 'Cambiar a {cardNumber}',
+    digitalQROnly: 'Solo QR Digital',
+    digitalQRInstructions: 'El cliente usará el QR que le muestra el valet',
+    findPhysicalCard: 'Busque la tarjeta física con este número',
+    cardAssignmentError: 'No se pudo asignar una tarjeta física. Intente nuevamente.',
+    cardChangeError: 'No se pudo cambiar la tarjeta. Intente nuevamente.',
+    loadingCardsError: 'No se pudieron cargar las tarjetas disponibles',
+    scanCard: 'Escanear Tarjeta',
+    scanPhysicalCard: 'Escanear Tarjeta Física',
+    pointAtCardQR: 'Apunte la cámara al código QR de la tarjeta física',
+    requestingCameraPermission: 'Solicitando permiso de cámara...',
+    cameraPermissionDenied: 'Se necesita permiso de cámara para escanear la tarjeta',
+    cardNotFound: 'Tarjeta no encontrada. Verifique que el QR sea válido.',
+    cardReadingError: 'Error al leer la tarjeta. Intente nuevamente.',
   },
   en: {
     // Navigation
@@ -198,6 +248,7 @@ export const translations = {
     model: 'Model',
     color: 'Color',
     driverData: 'Driver Data',
+    usePhysicalCardOption: 'Use physical card (scan or assign)',
     takePhoto: 'Take Photo',
     selectFromGallery: 'Select from Gallery',
     cameraPermission: 'Camera Permission',
@@ -213,10 +264,15 @@ export const translations = {
     noEstablishmentSelected: 'No establishment has been selected.',
     selectEstablishmentMessage: 'Please select an establishment from the main screen.',
     backToHome: 'Back to Home',
+    noActiveShiftTitle: 'No active shift',
+    noActiveShiftMessage: 'You must create a shift for this establishment before adding vehicles.',
+    goManageShifts: 'Go manage shifts',
     
     // State buttons
     request: 'Request',
+    atTheDoor: 'At the door',
     enter: 'Enter',
+    backToParked: 'Back to parked',
     park: 'Park',
     onWay: 'On Way',
     exit: 'Exit',
@@ -248,13 +304,23 @@ export const translations = {
     recurrent: 'Recurrent',
     disabled: 'Disabled',
     
+    // Notifications
+    notifications: 'Notifications',
+    vehicleRequested: 'Vehicle Requested',
+    vehicleRequestedMessage: 'Vehicle {patente} has been requested at {establishment}',
+    noNotifications: 'No notifications',
+    noNotificationsMessage: 'You will receive notifications when vehicles are requested at your establishment.',
+    clearNotifications: 'Clear notifications',
+    clearNotificationsMessage: 'Are you sure you want to delete all notifications?',
+    clear: 'Clear',
+    
     // Language
     selectLanguage: 'Select Language',
     spanish: 'Español',
     english: 'English',
     
     // Home Screen
-    hello: 'Hello! 👋',
+    hello: 'Hello!',
     welcome: 'Welcome',
     toCarman: 'to Carman',
     logout: 'Logout',
@@ -264,6 +330,8 @@ export const translations = {
     // Vehicle List
     searchByPlate: 'Search by plate...',
     loadingVehicles: 'Loading vehicles...',
+    loadingVehiclesSlowHint:
+      'If this takes too long, check your connection or pull to refresh when you return to home.',
     noVehiclesToShow: 'No vehicles to show',
     noVehiclesFound: 'No vehicles found with plate',
     ingresos: 'Entries',
@@ -290,6 +358,38 @@ export const translations = {
     notLoaded: 'Not loaded',
     errorLoadingVehicle: 'Error loading vehicle',
     unexpectedError: 'Unexpected error',
+    
+    // Physical Cards
+    physicalCard: 'Physical Card',
+    assignCard: 'Assign Card',
+    assigning: 'Assigning...',
+    noPhysicalCard: 'No physical card',
+    cardAssigned: 'Card Assigned',
+    cardAssignedMessage: 'Card {cardNumber} has been assigned. Look for the corresponding physical card.',
+    cardChanged: 'Card Changed',
+    cardChangedMessage: 'Changed to card {cardNumber}. Look for the new physical card.',
+    changeCard: 'Change Card',
+    selectCard: 'Select Card',
+    selectCardSubtitle: 'Choose an available card to replace the current one',
+    loadingCards: 'Loading cards...',
+    noCardsAvailable: 'No cards available',
+    currentCard: 'CURRENT',
+    cardAvailable: 'Available',
+    cardCurrentlyAssigned: 'Currently assigned card',
+    changeToCard: 'Change to {cardNumber}',
+    digitalQROnly: 'Digital QR Only',
+    digitalQRInstructions: 'The customer will use the QR shown by the valet',
+    findPhysicalCard: 'Look for the physical card with this number',
+    cardAssignmentError: 'Could not assign a physical card. Please try again.',
+    cardChangeError: 'Could not change the card. Please try again.',
+    loadingCardsError: 'Could not load available cards',
+    scanCard: 'Scan Card',
+    scanPhysicalCard: 'Scan Physical Card',
+    pointAtCardQR: 'Point the camera at the physical card QR code',
+    requestingCameraPermission: 'Requesting camera permission...',
+    cameraPermissionDenied: 'Camera permission is required to scan the card',
+    cardNotFound: 'Card not found. Please verify the QR is valid.',
+    cardReadingError: 'Error reading card. Please try again.',
   }
 };
 

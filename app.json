@@ -2,33 +2,37 @@
   "expo": {
     "name": "Carman",
     "slug": "carman-jusalazar-app",
-    "version": "1.0.0",
+    "version": "14.2.0",
+    "scheme": "carman",
     "orientation": "portrait",
-    "icon": "./assets/images/carmanlogo-2.png",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
-      "image": "./assets/images/carmanlogo-2.png",
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#130F26"
+      "backgroundColor": "#081024"
     },
     "ios": {
-      "bundleIdentifier": "com.jusalazar.carmannew",
+      "bundleIdentifier": "com.carmanapp.baires",
+      "buildNumber": "15",
       "supportsTablet": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Esta aplicación necesita acceso a la cámara para capturar fotos de patentes de vehículos.",
         "NSPhotoLibraryUsageDescription": "Esta aplicación necesita acceso a la galería de fotos para seleccionar imágenes de patentes.",
+        "NSLocationWhenInUseUsageDescription": "Carman no usa tu ubicación de forma activa. Algunas librerías incluidas en la app pueden acceder a APIs de ubicación del sistema; este texto cumple el requisito de Apple.",
         "UIRequiresFullScreen": true,
         "UIStatusBarStyle": "UIStatusBarStyleLightContent",
         "UIViewControllerBasedStatusBarAppearance": false
       }
     },
     "android": {
-      "package": "com.jusalazar.carmannew",
+      "versionCode": 16,
+      "package": "com.darey16.carman",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/carmanlogo-2.png",
-        "backgroundColor": "#130F26"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#081024"
       },
       "permissions": [
         "android.permission.CAMERA",
@@ -37,10 +41,13 @@
       ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
+      "immersiveMode": true,
       "navigationBar": {
-        "visible": false
+        "visible": false,
+        "backgroundColor": "#000000"
       },
       "softwareKeyboardLayoutMode": "pan",
+      "windowSoftInputMode": "adjustResize",
       "statusBar": {
         "hidden": false,
         "style": "light-content",
@@ -48,7 +55,7 @@
       }
     },
     "web": {
-      "favicon": "./assets/images/carmanlogo-2.png",
+      "favicon": "./assets/icon.png",
       "bundler": "metro"
     },
     "plugins": [
@@ -68,14 +75,9 @@
             "usesCleartextTraffic": true
           },
           "ios": {
-            "flipper": true
+            "flipper": false,
+            "newArchEnabled": false
           }
-        }
-      ],
-      [
-        "onesignal-expo-plugin",
-        {
-          "mode": "development"
         }
       ]
     ],

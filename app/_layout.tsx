@@ -1,29 +1,64 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { AppState, AppStateStatus, InteractionManager } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useAuth } from '../src/hooks/useAuth';
+import { useNotifications } from '../src/hooks/useNotifications';
 import { QueryProvider } from '../src/providers/QueryProvider';
 import { LanguageProvider } from '../src/contexts/LanguageContext';
 import '../global.css';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 export default function RootLayout() {
   const { initialize } = useAuth();
+  const { requestPermission, shouldShowPermissionPrompt } = useNotifications();
 
   useEffect(() => {
-    // Initialize auth service
-    initialize();
+    // Show UI ASAP — never block splash on OneSignal / auth
+    const splashTimer = setTimeout(() => {
+      void SplashScreen.hideAsync().catch(() => undefined);
+    }, 800);
 
-    // Hide splash screen after auth initialization
-    const timer = setTimeout(() => {
-      SplashScreen.hideAsync();
-    }, 1000);
+    void initialize().catch((e) => {
+      console.warn('Auth initialize failed:', e);
+    });
 
-    return () => clearTimeout(timer);
-  }, []); // Remove fontsLoaded dependency
+    // OneSignal TurboModule load can throw; defer until after first paint
+    const interaction = InteractionManager.runAfterInteractions(() => {
+      try {
+        if (shouldShowPermissionPrompt()) {
+          setTimeout(() => {
+            void requestPermission().catch(() => undefined);
+          }, 2000);
+        }
+      } catch (e) {
+        console.warn('Notification prompt init failed:', e);
+      }
+    });
+
+    return () => {
+      clearTimeout(splashTimer);
+      interaction.cancel?.();
+    };
+  }, []);
+
+  // Restore session when app comes back to foreground
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        // App has come to the foreground - restore session
+        console.log('📱 App came to foreground - restoring session');
+        initialize();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [initialize]);
 
   return (
     <LanguageProvider>
@@ -39,6 +74,7 @@ export default function RootLayout() {
           <Stack.Screen name="auth" />
           <Stack.Screen name="home" />
           <Stack.Screen name="profile" />
+          <Stack.Screen name="notifications" />
           <Stack.Screen name="vehicle/details" />
           <Stack.Screen name="vehicle/new" />
         </Stack>

@@ -10,3 +10,17 @@ export const useEstablishmentStore = create<EstablishmentState>((set) => ({
   selectedEstablishment: null,
   setSelectedEstablishment: (establishment) => set({ selectedEstablishment: establishment }),
 }));
+
+
+
+
+
+
+
+
+
+
+
+
+
+

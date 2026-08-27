@@ -8,7 +8,8 @@ import {
   Alert,
   Pressable,
   ScrollView,
-  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,7 +17,7 @@ import { ChevronDown, ChevronUp, Camera } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 
-import { colors, spacing, typography, borderRadius } from '../config/theme';
+import { colors, spacing, borderRadius } from '../config/theme';
 import { VehicleFormScheme, VehicleFormDataZod, VehicleDataWithTime, PATENTE_REGEX, Vehicle } from '../types/vehicle';
 import { useAddVehicle } from '../hooks/useAddVehicle';
 import { vehicleService } from '../services/vehicleService';
@@ -28,6 +29,10 @@ import { SimpleCameraCapture } from './SimpleCameraCapture';
 import { VIPBadge } from './VIPBadge';
 import { VehicleAddedSuccess } from './VehicleAddedSuccess';
 import { useLanguage } from '../contexts/LanguageContext';
+import { PhysicalCardButton } from './PhysicalCardButton';
+import { PhysicalCard } from '../types/vehicle';
+import { physicalCardService } from '../services/physicalCardService';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface VehicleFormProps {
   establishmentId: string;
@@ -41,15 +46,19 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
   embedded = false
 }) => {
   const { t } = useLanguage();
+  const queryClient = useQueryClient();
   const [showSuccess, setShowSuccess] = useState(false);
   const [addedVehicle, setAddedVehicle] = useState<Vehicle | null>(null);
   const [showDriverData, setShowDriverData] = useState(false);
   const [isVip, setIsVip] = useState(false);
   const [isDisabled, setIsDisabled] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [assignedCard, setAssignedCard] = useState<PhysicalCard | null>(null);
+  /** QR digital por defecto; tarjeta física sigue siendo opcional vía PhysicalCardButton */
+  const [noPhysicalCard, setNoPhysicalCard] = useState(true);
+  const [cardButtonReset, setCardButtonReset] = useState(0);
 
-  const { mutateAsync: addVehicle, isPending } = useAddVehicle();
+  const { mutateAsync: addVehicle, isPending } = useAddVehicle(establishmentId);
   const { recognizeVehicle, isProcessing: isAIProcessing } = usePlateRecognitionFetch();
 
   // Obtener marcas
@@ -59,19 +68,18 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
     staleTime: Infinity,
   });
 
-  // Obtener datos del establecimiento desde el store
+  // Establecimiento seleccionado global (Zustand) — se sincroniza desde home al elegir en el combo / al ir a "nuevo vehículo"
   const selectedEstablishment = useEstablishmentStore((state) => state.selectedEstablishment);
 
   const {
     control,
     handleSubmit,
     reset,
-    formState: { errors },
     setValue,
-    getValues,
     watch,
   } = useForm<VehicleFormDataZod>({
     resolver: zodResolver(VehicleFormScheme),
+    mode: 'onChange',
     defaultValues: {
       patente: '',
       sector: '',
@@ -86,6 +94,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
   });
 
   const watchedPatente = watch('patente');
+  const watchedSector = watch('sector');
 
       // Función para buscar patente
       const searchPlate = async (plate: string) => {
@@ -107,20 +116,26 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
           establishmentId,
           selectedEstablishment: selectedEstablishment?.nombre
         });
-        setValue('marca', result.marca || '');
-        setValue('modelo', result.modelo || '');
-        setValue('color', result.color || '');
-        setValue('nombreConductor', result.nombreConductor || '');
-        setValue('telefono', result.telefono || '');
+        const marcaId =
+          typeof result.marca === 'string'
+            ? result.marca
+            : result.marca && typeof result.marca === 'object' && '_id' in result.marca
+              ? (result.marca as { _id: string })._id
+              : '';
+        setValue('marca', marcaId, { shouldValidate: true });
+        setValue('modelo', result.modelo || '', { shouldValidate: true });
+        setValue('color', result.color || '', { shouldValidate: true });
+        setValue('nombreConductor', result.nombreConductor || '', { shouldValidate: true });
+        setValue('telefono', result.telefono || '', { shouldValidate: true });
         setIsVip(result.vip || false);
         setIsDisabled(result.inhabilitado || false);
       } else {
         // Resetear campos si no se encuentra
-        setValue('marca', '');
-        setValue('modelo', '');
-        setValue('color', '');
-        setValue('nombreConductor', '');
-        setValue('telefono', '');
+        setValue('marca', '', { shouldValidate: true });
+        setValue('modelo', '', { shouldValidate: true });
+        setValue('color', '', { shouldValidate: true });
+        setValue('nombreConductor', '', { shouldValidate: true });
+        setValue('telefono', '', { shouldValidate: true });
         setIsVip(false);
         setIsDisabled(false);
       }
@@ -138,53 +153,74 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
     }
   }, [watchedPatente]);
 
-  // Efecto para detectar el teclado
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
-      setIsKeyboardVisible(true);
-    });
-    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-      setIsKeyboardVisible(false);
-    });
-
-    return () => {
-      keyboardDidShowListener?.remove();
-      keyboardDidHideListener?.remove();
-    };
-  }, []);
-
   const onSubmit = async (data: VehicleFormDataZod) => {
-    const input: VehicleDataWithTime = { 
-      ...data, 
-      horaIngreso: new Date().toLocaleTimeString('es-AR', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      })
-    };
-    const { sector } = getValues();
+    if (!assignedCard && !noPhysicalCard) {
+      Alert.alert(
+        'Advertencia',
+        'Elegí: asignar tarjeta, escanear una tarjeta o "Solo QR digital".'
+      );
+      return;
+    }
 
+    const input: VehicleDataWithTime = {
+      ...data,
+      establecimiento: establishmentId,
+      horaIngreso: new Date().toLocaleTimeString('es-AR', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+      ...(noPhysicalCard && {
+        noPhysicalCard: true,
+      }),
+    };
     console.log('input: ----------------->', input);
     console.log('quienSeLleva: ----------------->', data.quienSeLleva);
 
-    // Solo validar campos obligatorios
-    if (errors.patente) {
-      Alert.alert('Advertencia', errors.patente.message);
-      return;
-    }
-    if (sector === '') {
-      Alert.alert('Advertencia', 'Seleccione un sector');
-      return;
-    }
-
     try {
-      console.log('🚗 Starting vehicle addition...');
+      console.log('🚗 Paso 1: Creando vehículo/ingreso...');
       console.log('🚗 Input data:', JSON.stringify(input, null, 2));
       
-      // Si pasa las validaciones obligatorias, proceder
+      // PASO 1: Crear el ingreso primero (sin tarjeta)
       const result = await addVehicle(input);
-      console.log('🚗 Vehicle added successfully:', result);
+      console.log('✅ Ingreso creado:', result);
+      
+      // PASO 2: Si hay tarjeta asignada, vincularla al vehículo/ingreso
+      if (assignedCard && result._id) {
+        try {
+          console.log('🏷️ Paso 2: Vinculando tarjeta al vehículo...');
+          console.log('🏷️ Tarjeta:', assignedCard.cardNumber);
+          console.log('🏷️ Vehículo ID:', result._id);
+          
+          const cardResponse = await physicalCardService.assignToVehicle(
+            establishmentId,
+            selectedEstablishment?.nombre || 'Establecimiento',
+            result._id,
+            data.patente
+          );
+          
+          console.log('✅ Tarjeta vinculada:', cardResponse.assignedCard.cardNumber);
+          
+          // Actualizar el resultado con la información de la tarjeta
+          result.physicalCardId = cardResponse.assignedCard._id;
+          result.physicalCardNumber = cardResponse.assignedCard.cardNumber;
+          result.qrCode = cardResponse.assignedCard.qrCode;
+          result.noPhysicalCard = false;
+          
+          // Invalidar la lista de vehículos para que se actualice con la tarjeta
+          queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+          
+        } catch (cardError: any) {
+          console.error('⚠️ Error vinculando tarjeta:', cardError);
+          Alert.alert(
+            'Advertencia',
+            'El vehículo se creó pero no se pudo asignar la tarjeta física. Use QR digital.'
+          );
+        }
+      }
       
       reset();
+      setAssignedCard(null);
+      setNoPhysicalCard(true);
       
       // Mostrar componente de éxito con QR
       setAddedVehicle(result as Vehicle);
@@ -207,25 +243,6 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
   const getBrandDescription = (id: string) => {
     const brand = brands.find((b) => b._id === id);
     return brand ? brand.descripcion : '';
-  };
-
-  const resetStates = () => {
-    setValue('marca', '');
-    setValue('modelo', '');
-    setValue('color', '');
-    setValue('nombreConductor', '');
-    setValue('telefono', '');
-    setIsDisabled(false);
-    setIsVip(false);
-  };
-
-  const handlePlateChange = (text: string) => {
-    resetStates();
-    const upper = text.toUpperCase();
-    setValue('patente', upper);
-    if (PATENTE_REGEX.test(upper)) {
-      searchPlate(upper);
-    }
   };
 
   const handleImageCaptured = async (imageUri: string) => {
@@ -262,9 +279,13 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
   };
 
   const content = (
+    <KeyboardAvoidingView
+      style={styles.keyboardAvoiding}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+    >
       <View style={embedded ? styles.embeddedContainer : styles.container}>
-        {/* Contenido principal - ScrollView para permitir scroll cuando aparece el teclado */}
-        <ScrollView 
+        <ScrollView
           style={styles.scrollContainer}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -277,7 +298,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
             </View>
           )}
 
-          <View style={styles.mainContent}>
+          <View>
             {/* Fila de Patente y Sector */}
             <View style={styles.rowContainer}>
               {/* Patente */}
@@ -292,9 +313,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
                           style={styles.patenteInput}
                           value={value}
                           onChangeText={(text) => {
-                            const upper = text.toUpperCase();
-                            onChange(upper);
-                            handlePlateChange(upper);
+                            onChange(text.toUpperCase());
                           }}
                           onBlur={onBlur}
                           placeholder={t('plate')}
@@ -320,13 +339,17 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
                 <Controller
                   control={control}
                   name="sector"
-                  render={({ field: { onChange, value } }) => (
-                    <SectorSelector
-                      sectors={selectedEstablishment?.sectores || []}
-                      selectedSector={value}
-                      onSectorChange={onChange}
-                    />
-                  )}
+                  render={({ field: { onChange, value } }) => {
+                    // temporal — confirmar sectores del store al renderizar SectorSelector
+                    console.log('🏢 sectores disponibles:', selectedEstablishment?.sectores);
+                    return (
+                      <SectorSelector
+                        sectors={selectedEstablishment?.sectores || []}
+                        selectedSector={value}
+                        onSectorChange={onChange}
+                      />
+                    );
+                  }}
                 />
               </View>
             </View>
@@ -451,13 +474,36 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
           </View>
         </ScrollView>
 
-        {/* Botones - Fijos en la parte inferior */}
-        {!isKeyboardVisible && (
-        <View style={styles.buttonsContainer}>
+        <View style={styles.footerActions}>
         <TouchableOpacity
-          style={[styles.submitButton, (isPending || isDisabled || isAIProcessing) && styles.submitButtonDisabled]}
-          onPress={handleSubmit(onSubmit)}
-          disabled={isPending || isDisabled || isAIProcessing}
+          style={[
+            styles.submitButton,
+            (isPending ||
+              isDisabled ||
+              isAIProcessing ||
+              !(watchedPatente ?? '').trim() ||
+              !(watchedSector ?? '').trim()) &&
+              styles.submitButtonDisabled,
+          ]}
+          onPress={handleSubmit(onSubmit, (invalid) => {
+            if (invalid.establecimiento) {
+              Alert.alert(
+                'Advertencia',
+                'No hay establecimiento seleccionado. Volvé al inicio y elegí un establecimiento.'
+              );
+            } else if (invalid.sector) {
+              Alert.alert('Advertencia', 'Seleccione un sector');
+            } else if (invalid.patente) {
+              Alert.alert('Advertencia', invalid.patente.message ?? 'Patente incorrecta');
+            }
+          })}
+          disabled={
+            isPending ||
+            isDisabled ||
+            isAIProcessing ||
+            !(watchedPatente ?? '').trim() ||
+            !(watchedSector ?? '').trim()
+          }
         >
           <Text style={styles.submitButtonText}>
             {isPending ? t('adding') : isAIProcessing ? t('processing') : t('addVehicle')}
@@ -471,34 +517,68 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
           <Text style={styles.backButtonText}>{t('back')}</Text>
         </TouchableOpacity>
         </View>
-        )}
 
-      {/* Componente de cámara */}
+        <View style={styles.cardConfigSection}>
+          <PhysicalCardButton
+            establishmentId={establishmentId}
+            onCardAssigned={(card) => {
+              setAssignedCard(card);
+              if (card) setNoPhysicalCard(false);
+            }}
+            onNoCardSelected={() => setNoPhysicalCard(true)}
+            onExpandPhysicalOptions={() => setNoPhysicalCard(false)}
+            disabled={isPending || isAIProcessing}
+            resetTrigger={cardButtonReset}
+          />
+        </View>
+
       <SimpleCameraCapture
         visible={showCamera}
         onClose={() => setShowCamera(false)}
         onImageCaptured={handleImageCaptured}
       />
     </View>
+    </KeyboardAvoidingView>
   );
+
+  const handleSuccessClose = () => {
+    setShowSuccess(false);
+    setAddedVehicle(null);
+    // Reiniciar el formulario con valores vacíos
+    reset({
+      patente: '',
+      sector: '',
+      establecimiento: establishmentId,
+      nombreConductor: '',
+      telefono: '',
+      marca: '',
+      modelo: '',
+      color: '',
+      quienSeLleva: '',
+      nroLlave: undefined,
+    });
+    // Reiniciar estados de tarjeta física (QR digital por defecto)
+    setAssignedCard(null);
+    setNoPhysicalCard(true);
+    // Reiniciar el componente PhysicalCardButton
+    setCardButtonReset(prev => prev + 1);
+    // Reiniciar estados VIP y Disabled
+    setIsVip(false);
+    setIsDisabled(false);
+    setShowDriverData(false);
+  };
 
   if (embedded) {
     return (
-      <>
+      <View style={styles.embeddedRoot}>
         {content}
         {showSuccess && addedVehicle && (
           <VehicleAddedSuccess
             vehicle={addedVehicle}
-            onClose={() => {
-              setShowSuccess(false);
-              setAddedVehicle(null);
-              if (onSuccess) {
-                onSuccess();
-              }
-            }}
+            onClose={handleSuccessClose}
           />
         )}
-      </>
+      </View>
     );
   }
 
@@ -508,13 +588,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
       {showSuccess && addedVehicle && (
         <VehicleAddedSuccess
           vehicle={addedVehicle}
-          onClose={() => {
-            setShowSuccess(false);
-            setAddedVehicle(null);
-            if (onSuccess) {
-              onSuccess();
-            }
-          }}
+          onClose={handleSuccessClose}
         />
       )}
     </View>
@@ -522,9 +596,15 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
 };
 
 const styles = StyleSheet.create({
+  keyboardAvoiding: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.greyBackground,
+  },
+  embeddedRoot: {
+    flex: 1,
   },
   embeddedContainer: {
     flex: 1,
@@ -535,20 +615,17 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 20,
+    paddingBottom: 12,
   },
   vipBadgeContainer: {
     alignItems: 'center',
     marginBottom: 20,
     marginTop: 10,
   },
-  mainContent: {
-    flex: 1,
-  },
   rowContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 12,
     gap: 12,
   },
   patenteContainer: {
@@ -582,7 +659,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   brandSection: {
-    marginBottom: 20,
+    marginBottom: 12,
     backgroundColor: colors.ligthGrey,
     borderRadius: 8,
     borderWidth: 1,
@@ -592,7 +669,7 @@ const styles = StyleSheet.create({
   modelColorRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 12,
     gap: 12,
   },
   modelContainer: {
@@ -602,7 +679,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   fieldContainer: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   textInput: {
     borderBottomWidth: 1,
@@ -617,7 +694,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    marginBottom: 20,
+    marginBottom: 12,
     padding: 16,
     borderRadius: 8,
     borderWidth: 2,
@@ -629,12 +706,15 @@ const styles = StyleSheet.create({
     color: colors.darkGrey,
   },
   driverDataContainer: {
-    marginBottom: 20,
+    marginBottom: 12,
   },
-  buttonsContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    paddingTop: 16,
+  cardConfigSection: {
+    paddingHorizontal: 4,
+    paddingBottom: 12,
+  },
+  footerActions: {
+    padding: 16,
+    paddingBottom: 12,
     backgroundColor: colors.greyBackground,
     borderTopWidth: 1,
     borderTopColor: colors.ligthGrey,

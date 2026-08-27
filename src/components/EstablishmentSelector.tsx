@@ -10,6 +10,8 @@ interface EstablishmentSelectorProps {
   selectedEstablishment: Establishment | null;
   onSelect: (establishment: Establishment) => void;
   loading?: boolean;
+  /** Vehículos aún en operación (ingresados / solicitados, etc.) */
+  activeVehicleCount?: number;
 }
 
 export const EstablishmentSelector: React.FC<EstablishmentSelectorProps> = ({
@@ -17,6 +19,7 @@ export const EstablishmentSelector: React.FC<EstablishmentSelectorProps> = ({
   selectedEstablishment,
   onSelect,
   loading = false,
+  activeVehicleCount,
 }) => {
   const { t } = useLanguage();
   const [modalVisible, setModalVisible] = useState(false);
@@ -28,7 +31,13 @@ export const EstablishmentSelector: React.FC<EstablishmentSelectorProps> = ({
 
   const getDisplayText = () => {
     if (loading) return t('loading');
-    if (selectedEstablishment) return selectedEstablishment.nombre;
+    if (selectedEstablishment) {
+      const name = selectedEstablishment.nombre;
+      if (typeof activeVehicleCount === 'number') {
+        return `${name} · ${activeVehicleCount} activos`;
+      }
+      return name;
+    }
     return t('selectEstablishment');
   };
 
@@ -38,14 +47,14 @@ export const EstablishmentSelector: React.FC<EstablishmentSelectorProps> = ({
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.selector}
-        onPress={() => setModalVisible(true)}
-        disabled={loading}
+        onPress={() => establishments.length > 1 && setModalVisible(true)}
+        disabled={loading || establishments.length <= 1}
       >
-        <Building size={18} color={colors.white} />
+        <Building size={16} color={colors.white} />
         <Text style={styles.selectedText} numberOfLines={1}>
           {displayText}
         </Text>
-        <ChevronDown size={18} color={colors.white} />
+        <ChevronDown size={16} color={colors.white} />
       </TouchableOpacity>
 
       <Modal
@@ -101,24 +110,26 @@ export const EstablishmentSelector: React.FC<EstablishmentSelectorProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: spacing.sm,
+    marginVertical: spacing.xs,
     width: '100%',
   },
   selector: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.darkGrey,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    backgroundColor: 'rgba(42, 52, 78, 0.78)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
     borderRadius: borderRadius.lg,
     gap: spacing.sm,
-    minHeight: 48,
+    minHeight: 40,
     width: '100%',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   selectedText: {
     flex: 1,
     color: colors.white,
-    fontSize: typography.sizes.base,
+    fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
   },
   modalOverlay: {

@@ -40,7 +40,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
   const [isVip, setIsVip] = useState(false);
   const [isDisabled, setIsDisabled] = useState(false);
 
-  const { mutateAsync: addVehicle, isPending } = useAddVehicle();
+  const { mutateAsync: addVehicle, isPending } = useAddVehicle(establishmentId);
 
   // Obtener marcas
   const { data: brands = [], isLoading: brandsLoading, error: brandsError } = useQuery({

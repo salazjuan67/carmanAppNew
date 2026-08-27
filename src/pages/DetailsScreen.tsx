@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { MapPin, Clock, ChevronLeft, Ban, Repeat, Edit, User, Car, Crown, RotateCcw, X } from 'lucide-react-native';
+import { MapPin, Clock, ChevronLeft, Ban, Repeat, Edit, User, Car, Crown, RotateCcw, X, CreditCard, Smartphone } from 'lucide-react-native';
 import {
   View,
   ImageBackground,
@@ -18,9 +18,9 @@ import { WideButton } from '../components/WideButton';
 import { colors, spacing, typography, borderRadius } from '../config/theme';
 import { router } from 'expo-router';
 import { CarmanIcon } from '../components/CarmanIcon';
-import { VehicleState } from '../types/vehicle';
+import { Vehicle, VehicleState } from '../types/vehicle';
 import { useUpdateState } from '../hooks/useUpdateState';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { vehicleService } from '../services/vehicleService';
 import { Dialog } from '../components/Dialog';
 import { useUpdateInfo } from '../hooks/useUpdateInfo';
@@ -28,15 +28,22 @@ import { useRefreshOnFocus } from '../hooks/useRefreshOnFocus';
 import { normalizeSectorList, generateWhatsAppQR } from '../utils/formatters';
 import { format } from 'date-fns';
 import { useLanguage } from '../contexts/LanguageContext';
-import { CustomSelect } from '../components/CustomSelect';
+import { CustomSelect, SelectItem } from '../components/CustomSelect';
 import QRCode from 'react-native-qrcode-svg';
 import { API_ENDPOINTS } from '../config/constants';
 import { AnimatedQRCode } from '../components/AnimatedQRCode';
-
+import {
+  ESTADO_EN_LA_PUERTA,
+  isIngresosEstado,
+  isSolicitadosEstado,
+  normalizeEstado,
+  parseVehicleStateChangeError,
+} from '../utils/vehicleEstado';
 export const DetailsScreen = ({ id }: { id: string }) => {
   const [showModal, setShowModal] = useState(false);
   const [showVehicleInfoModal, setShowVehicleInfoModal] = useState(false);
   const [showPersonInfoModal, setShowPersonInfoModal] = useState(false);
+  const [showCardInfoModal, setShowCardInfoModal] = useState(false);
   const shineAnimation = useRef(new Animated.Value(0)).current;
   const { t } = useLanguage();
 
@@ -54,6 +61,7 @@ export const DetailsScreen = ({ id }: { id: string }) => {
     refetchInterval: 1000 * 60,
   });
 
+  const queryClient = useQueryClient();
   const { error, isPending, mutateAsync: updateState } = useUpdateState();
   const { mutateAsync: updateInfoAsync } = useUpdateInfo();
 
@@ -62,6 +70,7 @@ export const DetailsScreen = ({ id }: { id: string }) => {
   // Estados para el modal de edición
   const [newPlateText, setNewPlateText] = useState('');
   const [newSectorText, setNewSectorText] = useState('');
+  const [sectores, setSectores] = useState<SelectItem[]>([]);
 
   // Inicializar estados cuando cambia el vehículo
   useEffect(() => {
@@ -93,7 +102,9 @@ export const DetailsScreen = ({ id }: { id: string }) => {
     }
   }, [vehicle?.vip, shineAnimation]);
 
-  const bgPath = (vehicle?.estado === 'ESTACIONADO' || vehicle?.estado === 'INGRESADO')
+  const estadoNorm = normalizeEstado(vehicle?.estado);
+
+  const bgPath = isIngresosEstado(estadoNorm)
     ? require('../../assets/bg/red-parking.png')
     : require('../../assets/bg/yellow-parking.png');
 
@@ -102,17 +113,23 @@ export const DetailsScreen = ({ id }: { id: string }) => {
       estado: state,
       ingresoId: vehicle?._id!,
       horaEgreso: state === 'ENTREGADO' ? format(new Date(), 'HH:mm') : undefined,
+      patente: vehicle?.patente,
+      establecimiento: vehicle?.establecimiento?._id,
+      estadoAnterior: vehicle?.estado,
     };
     updateState(body)
-      .then(() => {
+      .then((response) => {
         if (state === 'ENTREGADO') {
-          Alert.alert('Vehiculo egresado', 'El vehiculo ha sido egresado con exito', [
+          Alert.alert('Vehiculo egresado', response?.message || 'El vehiculo ha sido egresado con exito', [
             {
               text: 'OK',
               onPress: router.back,
             },
           ]);
         }
+      })
+      .catch((err) => {
+        Alert.alert('Error', parseVehicleStateChangeError(err));
       })
       .finally(() => {
         refetchVehicle();
@@ -138,9 +155,17 @@ export const DetailsScreen = ({ id }: { id: string }) => {
     console.log('🔄 Vehicle ID:', vehicle?._id);
 
     try {
-      // Llamar directamente al servicio sin usar el hook
-      await vehicleService.putEntryInfo(vehicle?._id!, body);
+      await updateInfoAsync({ idVehicle: vehicle._id, body });
       console.log('✅ Vehicle info updated successfully');
+
+      const nextPatente = body.patente;
+      const nextSector = body.sector;
+      queryClient.setQueryData<Vehicle>(['vehicle', id], (prev) =>
+        prev ? { ...prev, patente: nextPatente, sector: nextSector } : prev
+      );
+
+      await refetchVehicle();
+
       setShowModal(false);
       Alert.alert('Éxito', 'Información del vehículo actualizada correctamente');
     } catch (e) {
@@ -150,12 +175,30 @@ export const DetailsScreen = ({ id }: { id: string }) => {
     }
   };
 
-  const openEditModal = () => {
-    // Reinicializar los valores del modal
-    if (vehicle) {
-      setNewPlateText(vehicle.patente || '');
-      setNewSectorText(vehicle.sector || '');
+  const openEditModal = async () => {
+    if (!vehicle) return;
+
+    setNewPlateText(vehicle.patente || '');
+    setNewSectorText(vehicle.sector || '');
+
+    const rawSectores = vehicle.establecimiento?.sectores;
+    if (rawSectores && rawSectores.length > 0) {
+      setSectores(normalizeSectorList(rawSectores));
+    } else if (vehicle.establecimiento?._id) {
+      try {
+        const est = await vehicleService.getEstablishment(vehicle.establecimiento._id);
+        if (est?.sectores && est.sectores.length > 0) {
+          setSectores(normalizeSectorList(est.sectores));
+        } else {
+          setSectores([]);
+        }
+      } catch {
+        setSectores([]);
+      }
+    } else {
+      setSectores([]);
     }
+
     setShowModal(true);
   };
 
@@ -211,7 +254,7 @@ export const DetailsScreen = ({ id }: { id: string }) => {
               </View>
             </View>
           </View>
-          
+
           {/* Iconos de información */}
           <View style={styles.iconsContainer}>
             {vehicle?.vip && (
@@ -259,6 +302,15 @@ export const DetailsScreen = ({ id }: { id: string }) => {
             <Pressable style={styles.iconButton} onPress={() => setShowPersonInfoModal(true)}>
               <User size={20} color="black" />
             </Pressable>
+            {(vehicle?.physicalCardNumber || vehicle?.noPhysicalCard) && (
+              <Pressable style={styles.cardIconButton} onPress={() => setShowCardInfoModal(true)}>
+                {vehicle?.physicalCardNumber ? (
+                  <CreditCard size={20} color="white" />
+                ) : (
+                  <Smartphone size={20} color="white" />
+                )}
+              </Pressable>
+            )}
           </View>
           </ImageBackground>
         
@@ -266,7 +318,10 @@ export const DetailsScreen = ({ id }: { id: string }) => {
           {/* Sección del QR - Separada y centrada */}
           <View style={styles.qrSection}>
             <AnimatedQRCode 
-              value={generateWhatsAppQR(vehicle)} 
+            value={vehicle.qrCode
+                ? `${API_ENDPOINTS.QR_ENDPOINT}/${vehicle.qrCode}`
+                : generateWhatsAppQR(vehicle)
+              }
               vehicle={vehicle}
               size={200} 
               backgroundColor="white"
@@ -283,30 +338,33 @@ export const DetailsScreen = ({ id }: { id: string }) => {
             ) : (
               <View style={styles.stateButtonsContainer}>
                 <WideButton
-                  onPress={handleChangeState('SOLICITADO')}
-                  title={t('request')}
-                  primary={vehicle?.estado === 'SOLICITADO'}
-                />
-                <WideButton
-                  onPress={handleChangeState('INGRESADO')}
-                  title={t('enter')}
-                  primary={vehicle?.estado === 'INGRESADO'}
-                />
-                <WideButton
-                  onPress={handleChangeState('ESTACIONADO')}
-                  title={t('park')}
-                  primary={vehicle?.estado === 'ESTACIONADO'}
-                />
-                <WideButton
                   onPress={handleChangeState('EN CAMINO')}
                   title={t('onWay')}
-                  primary={vehicle?.estado === 'EN CAMINO'}
+                  primary={estadoNorm === 'EN CAMINO'}
+                />
+                <WideButton
+                  onPress={handleChangeState(ESTADO_EN_LA_PUERTA)}
+                  title={t('atTheDoor')}
+                  primary={estadoNorm === ESTADO_EN_LA_PUERTA}
                 />
                 <WideButton
                   onPress={handleChangeState('ENTREGADO')}
                   title={t('exit')}
-                  primary={vehicle?.estado === 'ENTREGADO'}
+                  primary={estadoNorm === 'ENTREGADO'}
                 />
+                {isSolicitadosEstado(estadoNorm) ? (
+                  <WideButton
+                    onPress={handleChangeState('ESTACIONADO')}
+                    title={t('backToParked')}
+                    primary
+                  />
+                ) : (
+                  <WideButton
+                    onPress={handleChangeState('INGRESADO')}
+                    title={t('enter')}
+                    primary={isIngresosEstado(estadoNorm)}
+                  />
+                )}
               </View>
             )}
           </View>
@@ -329,8 +387,8 @@ export const DetailsScreen = ({ id }: { id: string }) => {
               <View style={styles.modalSection}>
                 <Text style={styles.modalLabel}>{t('newSector')}</Text>
                 <CustomSelect
-                  title=""
-                  items={vehicle?.establecimiento?.sectores ? normalizeSectorList(vehicle.establecimiento.sectores) : []}
+                  title={newSectorText || vehicle?.sector || t('selectSector')}
+                  items={sectores}
                   onValueChange={(val) => setNewSectorText(val)}
                   selectedValue={newSectorText}
                 />
@@ -369,9 +427,93 @@ export const DetailsScreen = ({ id }: { id: string }) => {
                 <Text style={styles.modalLabel}>{t('model')}</Text>
                 <Text style={styles.modalValue}>{vehicle?.modelo || t('notLoaded')}</Text>
               </View>
+
+              <View style={styles.modalSection}>
+                <Text style={styles.modalLabel}>{t('driverName')}</Text>
+                <Text style={styles.modalValue}>{vehicle?.nombreConductor?.trim() || t('notLoaded')}</Text>
+              </View>
+
+              <View style={styles.modalSection}>
+                <Text style={styles.modalLabel}>{t('phone')}</Text>
+                <Text style={styles.modalValue}>{vehicle?.telefono?.trim() || t('notLoaded')}</Text>
+              </View>
+
+              {/* Información de tarjeta física en el modal */}
+              {vehicle?.physicalCardNumber && (
+                <View style={styles.modalSection}>
+                  <Text style={styles.modalLabel}>Tarjeta Física</Text>
+                  <View style={styles.cardInfoModal}>
+                    <CreditCard size={16} color={colors.primary[600]} />
+                    <Text style={styles.modalValue}>{vehicle.physicalCardNumber}</Text>
+                  </View>
+                </View>
+              )}
+
+              {vehicle?.noPhysicalCard && (
+                <View style={styles.modalSection}>
+                  <Text style={styles.modalLabel}>Método de Solicitud</Text>
+                  <View style={styles.qrInfoModal}>
+                    <Smartphone size={16} color={colors.primary[600]} />
+                    <Text style={styles.modalValue}>QR Digital</Text>
+                  </View>
+                </View>
+              )}
               
               <View style={styles.modalButtons}>
                 <WideButton title={t('close')} onPress={() => setShowVehicleInfoModal(false)} medium primary />
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Modal de información de tarjeta física */}
+        <Modal transparent animationType="fade" visible={showCardInfoModal}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Tarjeta Física</Text>
+              
+              {vehicle?.physicalCardNumber ? (
+                <>
+                  <View style={styles.modalSection}>
+                    <Text style={styles.modalLabel}>Número de Tarjeta</Text>
+                    <View style={styles.cardInfoModal}>
+                      <CreditCard size={16} color={colors.primary[600]} />
+                      <Text style={styles.modalValue}>{vehicle.physicalCardNumber}</Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.modalSection}>
+                    <Text style={styles.modalLabel}>Instrucciones</Text>
+                    <Text style={styles.modalValue}>
+                      El cliente debe entregar esta tarjeta física para solicitar su vehículo
+                    </Text>
+                  </View>
+                </>
+              ) : vehicle?.noPhysicalCard ? (
+                <>
+                  <View style={styles.modalSection}>
+                    <Text style={styles.modalLabel}>Método de Solicitud</Text>
+                    <View style={styles.qrInfoModal}>
+                      <Smartphone size={16} color={colors.primary[600]} />
+                      <Text style={styles.modalValue}>Solo QR Digital</Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.modalSection}>
+                    <Text style={styles.modalLabel}>Instrucciones</Text>
+                    <Text style={styles.modalValue}>
+                      El cliente debe escanear el QR que le mostró el valet para solicitar su vehículo
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <View style={styles.modalSection}>
+                  <Text style={styles.modalValue}>{t('notSpecified')}</Text>
+                </View>
+              )}
+              
+              <View style={styles.modalButtons}>
+                <WideButton title={t('close')} onPress={() => setShowCardInfoModal(false)} medium primary />
               </View>
             </View>
           </View>
@@ -386,6 +528,16 @@ export const DetailsScreen = ({ id }: { id: string }) => {
               <View style={styles.modalSection}>
                 <Text style={styles.modalLabel}>{t('whoTakesVehicle')}</Text>
                 <Text style={styles.modalValue}>{vehicle?.quienSeLleva || t('notSpecified')}</Text>
+              </View>
+
+              <View style={styles.modalSection}>
+                <Text style={styles.modalLabel}>{t('driverName')}</Text>
+                <Text style={styles.modalValue}>{vehicle?.nombreConductor?.trim() || t('notLoaded')}</Text>
+              </View>
+
+              <View style={styles.modalSection}>
+                <Text style={styles.modalLabel}>{t('phone')}</Text>
+                <Text style={styles.modalValue}>{vehicle?.telefono?.trim() || t('notLoaded')}</Text>
               </View>
               
               <View style={styles.modalButtons}>
@@ -507,6 +659,16 @@ const styles = StyleSheet.create({
     padding: 8,
     borderWidth: 1,
     borderColor: colors.black,
+    minWidth: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardIconButton: {
+    backgroundColor: colors.primary[600],
+    borderRadius: borderRadius.md,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: colors.primary[600],
     minWidth: 40,
     alignItems: 'center',
     justifyContent: 'center',
@@ -645,5 +807,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.blueBackGround,
+  },
+  cardInfoModal: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.primary[50],
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.primary[200],
+  },
+  qrInfoModal: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.primary[50],
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.primary[200],
   },
 });

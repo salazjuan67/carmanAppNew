@@ -1,52 +1,94 @@
-import React from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Pressable, StyleSheet, Text } from 'react-native';
 import { VehicleState } from '../types/vehicle';
 import { colors, spacing, borderRadius, typography } from '../config/theme';
 
+/** Colores de tab activo (spec rediseño Home) */
+const LAYER_ACCENTS = {
+  red: {
+    active: colors.error[500],
+    border: colors.error[600],
+    bg: colors.error[100],
+    bgMuted: colors.error[50],
+  },
+  yellow: {
+    active: '#F59E0B',
+    border: '#D97706',
+    bg: '#FEF3C7',
+    bgMuted: '#FFFBEB',
+  },
+  green: {
+    active: '#10B981',
+    border: '#059669',
+    bg: '#D1FAE5',
+    bgMuted: '#ECFDF5',
+  },
+} as const;
+
+export type TagLayer = 'red' | 'yellow' | 'green';
+
 interface VehicleTagProps {
   state: VehicleState;
+  layer: TagLayer;
   displayText?: string;
   quantity: number;
   onPress: () => void;
   selected: boolean;
 }
 
-export const VehicleTag: React.FC<VehicleTagProps> = ({ 
-  state, 
-  displayText, 
-  quantity, 
-  onPress, 
-  selected 
+export const VehicleTag: React.FC<VehicleTagProps> = ({
+  state: _state,
+  layer,
+  displayText,
+  quantity,
+  onPress,
+  selected,
 }) => {
-  const backgroundColor = getStateColor(state);
-  const scale = selected ? 1.05 : 1;
-  const opacity = selected ? 1 : 0.8;
+  const scale = useRef(new Animated.Value(selected ? 1.06 : 1)).current;
+  const accent = LAYER_ACCENTS[layer];
+
+  useEffect(() => {
+    Animated.spring(scale, {
+      toValue: selected ? 1.06 : 1,
+      friction: 7,
+      tension: 80,
+      useNativeDriver: true,
+    }).start();
+  }, [selected, scale]);
 
   return (
-    <Pressable
-      style={[
-        styles.tag,
-        { 
-          backgroundColor,
-          transform: [{ scale }],
-          opacity,
-        }
-      ]}
-      onPress={onPress}
-    >
-      <Text style={styles.displayText}>{displayText || state}</Text>
-      <Text style={styles.quantityText}>{quantity ?? 0}</Text>
-    </Pressable>
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <Pressable
+        style={({ pressed }) => [
+          styles.tag,
+          {
+            backgroundColor: selected ? accent.bg : accent.bgMuted,
+            borderColor: selected ? accent.border : colors.secondary[200],
+            borderWidth: selected ? 3 : 1,
+            opacity: pressed ? 0.92 : 1,
+            shadowOpacity: selected ? 0.22 : 0.08,
+            elevation: selected ? 6 : 2,
+          },
+        ]}
+        onPress={onPress}
+      >
+        <Text
+          style={[
+            styles.displayText,
+            selected && { color: colors.black, fontWeight: typography.weights.bold },
+          ]}
+        >
+          {displayText ?? String(_state)}
+        </Text>
+        <Text style={[styles.quantityText, selected && { color: accent.border }]}>{quantity ?? 0}</Text>
+      </Pressable>
+    </Animated.View>
   );
-};
-
-const getStateColor = (estado: string): string => {
-  return colors.stateColors[estado as keyof typeof colors.stateColors] || '#6B7280';
 };
 
 const styles = StyleSheet.create({
   tag: {
-    minWidth: 90,
+    minWidth: 96,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: borderRadius.lg,
@@ -54,26 +96,19 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     marginHorizontal: spacing.xs,
     shadowColor: colors.black,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
   },
   displayText: {
     textAlign: 'center',
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.semibold,
-    color: colors.white,
-    marginBottom: 2,
+    color: colors.secondary[700],
+    marginBottom: 4,
   },
   quantityText: {
-    fontSize: typography.sizes.lg,
+    fontSize: 22,
     fontWeight: typography.weights.bold,
-    color: colors.white,
+    color: colors.secondary[800],
   },
 });

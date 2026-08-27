@@ -24,3 +24,4 @@ export const useAnimated = (initialValue: number = 0) => {
 
   return animatedValue
 }
+

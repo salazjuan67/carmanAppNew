@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View, StyleSheet } from 'react-native';
 import { TextField } from './TextField';
 import { SelectItem } from './CustomSelect';
 import { colors } from '../config/theme';
+
+const BLUR_CLOSE_MS = 200;
 
 type Props = {
   label?: string;
@@ -22,14 +24,46 @@ export const AutoCompleteInput: React.FC<Props> = ({
   newText 
 }) => {
   const [searchText, setSearchText] = useState('');
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const blurCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (blank) setSearchText('');
+    if (blank) {
+      setSearchText('');
+      setDropdownVisible(false);
+    }
   }, [blank]);
 
   useEffect(() => {
     if (newText) setSearchText(newText);
   }, [newText]);
+
+  useEffect(() => {
+    return () => {
+      if (blurCloseRef.current) clearTimeout(blurCloseRef.current);
+    };
+  }, []);
+
+  const clearBlurClose = () => {
+    if (blurCloseRef.current) {
+      clearTimeout(blurCloseRef.current);
+      blurCloseRef.current = null;
+    }
+  };
+
+  const scheduleCloseOnBlur = () => {
+    clearBlurClose();
+    blurCloseRef.current = setTimeout(() => {
+      setDropdownVisible(false);
+      blurCloseRef.current = null;
+    }, BLUR_CLOSE_MS);
+  };
+
+  const handleChangeText = (text: string) => {
+    clearBlurClose();
+    setSearchText(text);
+    setDropdownVisible(true);
+  };
 
   const filteredItems = arrayData.filter((el) => {
     const searchLower = searchText?.toLowerCase() || '';
@@ -45,11 +79,16 @@ export const AutoCompleteInput: React.FC<Props> = ({
     <View style={styles.container}>
       <TextField
         label={label}
-        onChangeText={setSearchText}
+        onChangeText={handleChangeText}
         value={searchText}
         placeholder={placeholder}
+        onFocus={() => {
+          clearBlurClose();
+          setDropdownVisible(true);
+        }}
+        onBlur={scheduleCloseOnBlur}
       />
-      {searchText && (
+      {dropdownVisible && (
         <View style={styles.dropdown}>
           {filteredItems.length > 0 ? (
             <View>
@@ -60,6 +99,11 @@ export const AutoCompleteInput: React.FC<Props> = ({
                   id={item.id}
                   setText={setSearchText}
                   setValue={setValue}
+                  onPressInItem={clearBlurClose}
+                  onSelect={() => {
+                    clearBlurClose();
+                    setDropdownVisible(false);
+                  }}
                 />
               ))}
             </View>
@@ -79,17 +123,21 @@ type ItemProps = {
   id: string;
   setText: (value: string) => void;
   setValue: (value: string) => void;
+  onPressInItem: () => void;
+  onSelect: () => void;
 };
 
-const Item: React.FC<ItemProps> = ({ text, setText, id, setValue }) => {
+const Item: React.FC<ItemProps> = ({ text, setText, id, setValue, onPressInItem, onSelect }) => {
   const handlePress = () => {
     setValue(id);
     setText(text);
+    onSelect();
   };
 
   return (
     <Pressable
       focusable={true}
+      onPressIn={onPressInItem}
       onPress={handlePress}
       style={styles.item}
     >

@@ -5,6 +5,7 @@ import { isAvailableAsync, shareAsync } from 'expo-sharing';
 import { Printer, Share } from 'lucide-react-native';
 import { colors, spacing, typography, borderRadius } from '../config/theme';
 import { Vehicle } from '../types/vehicle';
+import { API_ENDPOINTS } from '../config/constants';
 
 interface PrintButtonProps {
   vehicle: Vehicle;
@@ -17,6 +18,9 @@ export const PrintButton: React.FC<PrintButtonProps> = ({ vehicle }) => {
     const now = new Date();
     const entryTime = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
     const entryDate = now.toLocaleDateString('es-AR');
+    const ticketQrUrl = vehicle.qrCode
+      ? `${API_ENDPOINTS.QR_ENDPOINT}/${vehicle.qrCode}`
+      : `${API_ENDPOINTS.QR_ENDPOINT}/${vehicle._id}`;
 
     return `<!DOCTYPE html>
 <html lang="es">
@@ -141,7 +145,7 @@ export const PrintButton: React.FC<PrintButtonProps> = ({ vehicle }) => {
 <body>
     <div class="container">
         <div class="logo">
-            <img src="http://149.50.128.181:3000/carman.png" width="128" alt="carman_logo">
+            <img src="https://carmanparking.com/carman.png" width="128" alt="carman_logo">
         </div>
         <header>
             <h1>¡Bienvenido!</h1>
@@ -167,7 +171,7 @@ export const PrintButton: React.FC<PrintButtonProps> = ({ vehicle }) => {
 
         <div id="qrcode">
             <b>Escanee para solicitar el vehículo cuando desee retirarse</b>
-            <img src="https://api.qrserver.com/v1/create-qr-code/?data=http://admin.carmanparking.com.ar/ticket/${vehicle._id}&amp;size=150x150" alt="qrcode" />   
+            <img src="https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(ticketQrUrl)}&amp;size=150x150" alt="qrcode" />   
         </div>
     </div>
 
@@ -259,3 +263,4 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semibold,
   },
 });
+

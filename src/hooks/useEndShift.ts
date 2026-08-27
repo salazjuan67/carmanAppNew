@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { postEndShift } from '../services/shiftServiceNew';
+import { postEndShift, ShiftApiError } from '../services/shiftServiceNew';
 import { Alert } from 'react-native';
 
 export const useEndShift = () => {
@@ -14,19 +14,18 @@ export const useEndShift = () => {
         queryKey: ['shift'],
       });
     },
-    onError: (error: any) => {
+    onError: (error: ShiftApiError) => {
       console.error('-- useEndShift --', error.message);
-      
-      // Si es error 400, probablemente el turno ya está cerrado
-      if (error.response?.status === 400) {
+
+      if (error.status === 400) {
         Alert.alert('Turno ya cerrado', 'Este turno ya fue cerrado anteriormente');
-        // Invalidar queries para refrescar el estado
         queryClient.invalidateQueries({
           queryKey: ['shift'],
         });
-      } else {
-        Alert.alert('Hubo un Error', 'No se pudo cerrar el turno, reinicie la app');
+        return;
       }
+
+      Alert.alert('Hubo un Error', error.message || 'No se pudo cerrar el turno');
     },
   });
 

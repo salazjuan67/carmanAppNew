@@ -1,5 +1,43 @@
 import { API_CONFIG, API_ENDPOINTS } from '../config/constants';
-import { Vehicle, Brand, VehicleFound, VehicleFormData, UpdateVehicleState, Establishment, VehicleDataWithTime } from '../types/vehicle';
+import { apiClient } from './apiClient';
+import { navigateAfterSessionExpired } from './sessionExpired';
+import {
+  Vehicle,
+  Brand,
+  VehicleFound,
+  VehicleFormData,
+  UpdateVehicleState,
+  ChangeEstadoResponse,
+  Establishment,
+  VehicleDataWithTime,
+  IngresosListFilters,
+} from '../types/vehicle';
+/**
+ * POST /cobranzas/ingresos a veces devuelve el documento en `data`, `ingreso`, o con `id` en lugar de `_id`.
+ * Sin esto, `vehicle._id` queda undefined y el QR apunta a /ticket/undefined.
+ */
+function normalizeVehicleResponse(raw: unknown): Vehicle {
+  if (raw == null || typeof raw !== 'object') {
+    return raw as Vehicle;
+  }
+
+  let o = raw as Record<string, unknown>;
+
+  const hasMongoId = typeof o._id === 'string';
+
+  if (!hasMongoId && o.data != null && typeof o.data === 'object') {
+    o = o.data as Record<string, unknown>;
+  } else if (!hasMongoId && o.ingreso != null && typeof o.ingreso === 'object') {
+    o = o.ingreso as Record<string, unknown>;
+  }
+
+  const id = o._id ?? o.id;
+  if (id != null && o._id == null) {
+    return { ...o, _id: String(id) } as Vehicle;
+  }
+
+  return o as Vehicle;
+}
 
 class VehicleService {
   private baseURL: string;
@@ -55,6 +93,10 @@ class VehicleService {
       console.log(`📦 Response status: ${response.status}, ok: ${response.ok}`);
       
       if (!response.ok) {
+        if (response.status === 401) {
+          void navigateAfterSessionExpired();
+          throw new Error('401 - Sesión expirada');
+        }
         throw new Error(`HTTP ${response.status}: ${responseText}`);
       }
 
@@ -100,43 +142,84 @@ class VehicleService {
     }
   }
 
-  async getEntries(establishmentId: string): Promise<Vehicle[]> {
-    const url = `${API_ENDPOINTS.VEHICLE_ENTRIES}?establecimiento=${establishmentId}`;
-    return this.makeRequest<Vehicle[]>(url);
+  async getEntries(
+    establecimientoId: string,
+    filters?: IngresosListFilters
+  ): Promise<Vehicle[]> {
+    const primary = await apiClient.getVehicleEntries(establecimientoId, filters);
+    if (primary.success) {
+      return this.normalizeVehicleListPayload(primary.data);
+    }
+    const errText = primary.error || 'Error al cargar ingresos';
+    if (/\b401\b|sesión expirada/i.test(errText)) {
+      throw new Error(errText);
+    }
+    console.warn('⚠️ Listado /vehiculos/ingresos falló, reintento /cobranzas/ingresos:', errText);
+    const fallback = await apiClient.getVehicleEntriesCobranzas(establecimientoId, filters);
+    if (!fallback.success) {
+      throw new Error(fallback.error || errText);
+    }
+    return this.normalizeVehicleListPayload(fallback.data);
+  }
+
+  /** El GET /cobranzas/ingresos puede devolver array plano o { ingresos | data | results }. */
+  private normalizeVehicleListPayload(raw: unknown): Vehicle[] {
+    return this.extractVehicleList(raw);
+  }
+
+  private extractVehicleList(raw: unknown): Vehicle[] {
+    if (raw == null) return [];
+    if (Array.isArray(raw)) return raw as Vehicle[];
+    if (typeof raw !== 'object') return [];
+    const o = raw as Record<string, unknown>;
+    if (Array.isArray(o.ingresos)) return o.ingresos as Vehicle[];
+    if (Array.isArray(o.data)) return o.data as Vehicle[];
+    if (Array.isArray(o.results)) return o.results as Vehicle[];
+    if (o.data && typeof o.data === 'object' && o.data !== null) {
+      const inner = o.data as Record<string, unknown>;
+      if (Array.isArray(inner.ingresos)) return inner.ingresos as Vehicle[];
+      if (Array.isArray(inner.data)) return inner.data as Vehicle[];
+    }
+    return [];
   }
 
   async getEntryById(id: string): Promise<Vehicle> {
-    const result = await this.makeRequest<Vehicle>(`${API_ENDPOINTS.VEHICLE_ENTRIES}/${id}`);
-    
-    // Debug temporal
+    const result = await this.makeRequest<Vehicle>(`${API_ENDPOINTS.VEHICLE_INGRESOS_LIST}/${id}`);
     console.log('🔍 getEntryById - quienSeLleva:', result.quienSeLleva);
-    
+
     return result;
   }
 
-  async postEntry(vehicleData: VehicleDataWithTime): Promise<Vehicle> {
-    console.log('📡 postEntry - Enviando POST a:', API_ENDPOINTS.VEHICLE_ENTRIES);
-    console.log('📦 postEntry - Datos del vehículo:', vehicleData);
-    
-    // Debug temporal
+  async postEntry(vehicleData: VehicleDataWithTime, establishmentId: string): Promise<Vehicle> {
+    if (!establishmentId?.trim()) {
+      throw new Error('postEntry: establishmentId es obligatorio para el body establecimiento');
+    }
+
+    // Siempre enviar establecimiento desde el parámetro (establecimiento seleccionado en UI),
+    // no solo el valor del formulario, para que el backend no resuelva el turno del usuario.
+    const body = { ...vehicleData, establecimiento: establishmentId.trim() };
+
+    console.log('📡 postEntry - Enviando POST a:', API_ENDPOINTS.VEHICLE_INGRESOS_POST);
+    console.log('📦 postEntry - Body:', body);
     console.log('🔍 postEntry - quienSeLleva:', vehicleData.quienSeLleva);
-    
-    const response = await this.makeRequest<Vehicle>(
-      API_ENDPOINTS.VEHICLE_ENTRIES,
+
+    const response = await this.makeRequest<unknown>(
+      API_ENDPOINTS.VEHICLE_INGRESOS_POST,
       {
         method: 'POST',
-        body: JSON.stringify(vehicleData),
+        body: JSON.stringify(body),
       }
     );
-    
-    console.log('📨 postEntry - Respuesta recibida:', response);
-    return response;
+
+    const normalized = normalizeVehicleResponse(response);
+    console.log('📨 postEntry - Respuesta recibida (normalizada):', normalized);
+    return normalized;
   }
 
   async createVehicle(data: any) {
     console.log('🚗 Creating vehicle with data:', data);
     try {
-      const result = await this.makeRequest('/api/vehiculos', {
+      const result = await this.makeRequest(API_ENDPOINTS.VEHICLES, {
         method: 'POST',
         body: JSON.stringify(data),
       });
@@ -149,15 +232,16 @@ class VehicleService {
   }
 
   async putEntryInfo(idVehicle: string, body: any): Promise<void> {
-    console.log('🔄 Updating vehicle info:', { idVehicle, body });
-    console.log('🔄 Endpoint:', `${API_ENDPOINTS.VEHICLE_ENTRIES}/${idVehicle}`);
-    console.log('🔄 Body JSON:', JSON.stringify(body));
-    
+    const payload = { ...body, _id: idVehicle };
+    console.log('🔄 Updating vehicle info:', { idVehicle, body: payload });
+    console.log('🔄 Endpoint:', API_ENDPOINTS.VEHICLE_ENTRIES);
+    console.log('🔄 Body JSON:', JSON.stringify(payload));
+
     try {
       console.log('🔄 About to call makeRequest...');
-      const result = await this.makeRequest<void>(`${API_ENDPOINTS.VEHICLE_ENTRIES}/${idVehicle}`, {
+      const result = await this.makeRequest<void>(API_ENDPOINTS.VEHICLE_ENTRIES, {
         method: 'PUT',
-        body: JSON.stringify(body),
+        body: JSON.stringify(payload),
       });
       console.log('✅ Vehicle info updated successfully:', result);
       return result;
@@ -172,20 +256,24 @@ class VehicleService {
     }
   }
 
-  async postEntryState(body: UpdateVehicleState): Promise<void> {
+  async postEntryState(body: UpdateVehicleState): Promise<ChangeEstadoResponse> {
     console.log('=== POST ENTRY STATE ===');
     console.log('Sending request to:', API_ENDPOINTS.POST_ENTRIES_STATE);
     console.log('Body:', body);
-    
-    const response = await this.makeRequest<any>(API_ENDPOINTS.POST_ENTRIES_STATE, {
+
+    const response = await this.makeRequest<ChangeEstadoResponse>(API_ENDPOINTS.POST_ENTRIES_STATE, {
       method: 'POST',
       body: JSON.stringify(body),
     });
-    
+
     console.log('Response:', response);
     console.log('========================');
-    
-    return response;
+
+    if (response && response.success === false) {
+      throw new Error(response.message || 'Estado inválido');
+    }
+
+    return response ?? { success: true };
   }
 
   async getSearchPlate(patente: string, establishmentId: string): Promise<VehicleFound | null> {
@@ -272,8 +360,7 @@ class VehicleService {
    */
   async getEstablishment(establishmentId: string): Promise<Establishment> {
     const response = await this.makeRequest<Establishment>(
-      `${API_ENDPOINTS.ESTABLISHMENTS}/${establishmentId}`,
-      'GET'
+      `${API_ENDPOINTS.ESTABLISHMENT}/${establishmentId}`
     );
     
     console.log('🏢 Establishment response:', response);

@@ -3,21 +3,27 @@ import { Alert } from 'react-native';
 import { vehicleService } from '../services/vehicleService';
 import { VehicleDataWithTime } from '../types/vehicle';
 
-export const useAddVehicle = () => {
+export const useAddVehicle = (establishmentId: string) => {
   const queryClient = useQueryClient();
 
   const { data, mutate, mutateAsync, isPending } = useMutation({
     mutationFn: async (input: VehicleDataWithTime) => {
       console.log('🚗 Starting vehicle addition process...');
       console.log('🚗 Input data:', input);
-      
-      // Crear el ingreso directamente - la API se encarga de crear el vehículo si no existe
+      console.log('🚗 Establishment (postEntry):', establishmentId);
+
       console.log('🚗 Creating vehicle entry...');
-      return vehicleService.postEntry(input);
+      return vehicleService.postEntry(input, establishmentId);
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       console.log('Vehicle entry created successfully!');
-      queryClient.invalidateQueries({
+      // Refrescar listado del home (antes solo se invalidaba una key incorrecta y no aparecían los ingresos)
+      void queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      void queryClient.invalidateQueries({
+        queryKey: ['vehicles', establishmentId],
+      });
+      void queryClient.refetchQueries({ queryKey: ['vehicles', establishmentId] });
+      void queryClient.invalidateQueries({
         queryKey: ['vehicles', 'unread', 'notifications'],
       });
     },

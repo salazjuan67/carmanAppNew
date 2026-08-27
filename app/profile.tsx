@@ -12,6 +12,7 @@ import {
   ChevronRight
 } from 'lucide-react-native';
 import { AuthGuard } from '../src/components/AuthGuard';
+import { APP_CONFIG } from '../src/config/constants';
 
 export default function ProfileScreen() {
   return (
@@ -161,7 +162,7 @@ function ProfileScreenContent() {
                 Versión
               </Text>
               <Text className="text-primary-200 font-montserrat">
-                1.0.0
+                {APP_CONFIG.VERSION}
               </Text>
             </View>
             <View className="flex-row justify-between items-center mb-4">
@@ -169,7 +170,7 @@ function ProfileScreenContent() {
                 SDK
               </Text>
               <Text className="text-primary-200 font-montserrat">
-                54.0.0
+                {APP_CONFIG.SDK_VERSION}
               </Text>
             </View>
             <View className="flex-row justify-between items-center">

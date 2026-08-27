@@ -183,7 +183,7 @@ export const AnimatedQRCode: React.FC<AnimatedQRCodeProps> = ({
 <body>
     <div class="container">
         <div class="logo">
-            <img src="http://149.50.128.181:3000/carman.png" width="128" alt="carman_logo">
+            <img src="https://carmanparking.com/carman.png" width="128" alt="carman_logo">
         </div>
         <header>
             <h1>¡Bienvenido!</h1>
@@ -209,7 +209,7 @@ export const AnimatedQRCode: React.FC<AnimatedQRCodeProps> = ({
 
         <div id="qrcode">
             <b>Acceda al siguiente enlace para solicitar su vehículo</b>
-            <img src="https://api.qrserver.com/v1/create-qr-code/?data=http://admin.carmanparking.com.ar/ticket/${vehicle._id}&amp;size=150x150" alt="qrcode" />   
+            <img src="https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(value)}&amp;size=150x150" alt="qrcode" />   
         </div>
     </div>
 

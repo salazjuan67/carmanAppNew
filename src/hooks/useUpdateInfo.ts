@@ -22,11 +22,14 @@ export const useUpdateInfo = () => {
       console.log('🔄 useUpdateInfo - Starting mutation:', { idVehicle, body });
       return vehicleService.putEntryInfo(idVehicle, body);
     },
-    onSuccess: (data, variables) => {
-      console.log('🔄 useUpdateInfo - Success:', { data, variables });
-      // Solo invalidar queries, no forzar refetch
-      queryClient.invalidateQueries({ queryKey: ['vehicle'] });
+    onSuccess: (_data, variables) => {
+      console.log('🔄 useUpdateInfo - Success:', { variables });
+      // Lista en home (prefijo ['vehicles', establishmentId] u otras variantes)
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      // Detalle del ingreso concreto
+      queryClient.invalidateQueries({ queryKey: ['vehicle', variables.idVehicle] });
+      // Cualquier otra query que use solo el prefijo 'vehicle'
+      queryClient.invalidateQueries({ queryKey: ['vehicle'] });
     },
     onError: (error, variables) => {
       console.error('❌ useUpdateInfo - Error:', { error, variables });

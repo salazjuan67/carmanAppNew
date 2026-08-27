@@ -1,15 +1,21 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { NOTIFICATION_CONFIG } from '../config/constants';
+import { router } from 'expo-router';
+import { API_ENDPOINTS, API_CONFIG, ANDROID_VEHICLE_NOTIFICATION_CHANNEL_ID } from '../config/constants';
+import { useHomeUiStore } from '../store/homeUiStore';
 
-// Configure notification handler
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// Configure notification handler (no tumbar el arranque si falla en algún entorno)
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+} catch (e) {
+  console.warn('⚠️ setNotificationHandler failed:', e);
+}
 
 export class NotificationService {
   private static instance: NotificationService;
@@ -29,20 +35,33 @@ export class NotificationService {
     try {
       console.log('🔔 Initializing notification service...');
 
-      // Request permissions
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') {
-        console.log('❌ Notification permission not granted');
+      // Do not prompt on cold start (can contribute to launch races on iOS).
+      // Only check current status; permission UI is requested later from the hook.
+      const current = await Notifications.getPermissionsAsync();
+      if (current.status !== 'granted') {
+        console.log('ℹ️ Notification permission not granted yet');
         return false;
       }
 
-      // Get device token
+      await this.ensureAndroidVehicleChannel();
+
+      // Get device token (Android requires FCM/Firebase; skip gracefully if not configured)
       if (Platform.OS !== 'web') {
-        const token = await Notifications.getExpoPushTokenAsync({
-          projectId: 'b6860274-7285-4382-83d0-2c63a93ca0fb',
-        });
-        this.deviceToken = token.data;
-        console.log('✅ Device token obtained:', this.deviceToken?.substring(0, 20) + '...');
+        try {
+          const token = await Notifications.getExpoPushTokenAsync({
+            projectId: 'b6860274-7285-4382-83d0-2c63a93ca0fb',
+          });
+          this.deviceToken = token.data;
+          console.log('✅ Device token obtained:', this.deviceToken?.substring(0, 20) + '...');
+        } catch (tokenError: any) {
+          const msg = tokenError?.message || String(tokenError);
+          if (msg.includes('Firebase') || msg.includes('FCM') || msg.includes('FirebaseApp')) {
+            console.log('ℹ️ Push token unavailable (FCM/Firebase not configured). Local notifications still work.');
+          } else {
+            console.warn('⚠️ Could not get push token:', msg);
+          }
+          this.deviceToken = null;
+        }
       }
 
       // Setup notification listeners
@@ -53,6 +72,21 @@ export class NotificationService {
     } catch (error) {
       console.error('❌ Error initializing notification service:', error);
       return false;
+    }
+  }
+
+  private async ensureAndroidVehicleChannel(): Promise<void> {
+    if (Platform.OS !== 'android') return;
+    try {
+      await Notifications.setNotificationChannelAsync(ANDROID_VEHICLE_NOTIFICATION_CHANNEL_ID, {
+        name: 'Solicitudes de vehículo',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 400, 250, 400],
+        sound: 'default',
+        enableVibrate: true,
+      });
+    } catch (e) {
+      console.warn('⚠️ No se pudo crear el canal de notificaciones Android:', e);
     }
   }
 
@@ -80,8 +114,47 @@ export class NotificationService {
     const data = response.notification.request.content.data;
     
     if (data?.type === 'vehicle_requested') {
-      // Navigate to vehicle details or notification screen
-      console.log('🚗 Vehicle requested notification tapped');
+      console.log('🚗 Vehicle requested notification tapped → home / Solicitados');
+      useHomeUiStore.getState().requestSolicitadosTabOnHome();
+      router.replace('/home');
+    }
+  }
+
+  /**
+   * Get unread notifications count from backend (like the old app)
+   */
+  async getUnreadCount(establishmentId: string): Promise<number> {
+    try {
+      if (!establishmentId) {
+        console.log('❌ No establishment ID provided for unread count');
+        return 0;
+      }
+
+      console.log('🔔 Fetching unread notifications count for establishment:', establishmentId);
+      
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.UNREAD_NOTIFICATIONS}?establishmentId=${establishmentId}`, {
+        method: 'GET',
+        headers: API_CONFIG.HEADERS,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const count = typeof data === 'number' ? data : data?.count || 0;
+        console.log('✅ Unread notifications count:', count);
+        return count;
+      } else {
+        // Silently handle 404 (endpoint not implemented) and other errors
+        if (response.status === 404) {
+          console.log('ℹ️ Backend notifications endpoint not implemented yet - using local notifications');
+        } else {
+          console.log('⚠️ Failed to fetch unread notifications count:', response.status);
+        }
+        return 0;
+      }
+    } catch (error) {
+      // Silently handle network errors - this is expected until backend is ready
+      console.log('ℹ️ Backend notifications service not available yet - using local notifications');
+      return 0;
     }
   }
 
@@ -100,6 +173,9 @@ export class NotificationService {
           body,
           data,
           sound: 'default',
+          ...(Platform.OS === 'android'
+            ? { android: { channelId: ANDROID_VEHICLE_NOTIFICATION_CHANNEL_ID } }
+            : {}),
         },
         trigger: null, // Send immediately
       });

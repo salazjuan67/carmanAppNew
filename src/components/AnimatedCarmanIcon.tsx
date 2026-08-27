@@ -1,0 +1,110 @@
+import React, { useEffect, useRef } from 'react';
+import { Animated } from 'react-native';
+import Svg, { Path, G, Defs, ClipPath, Rect } from 'react-native-svg';
+
+export const AnimatedCarmanIcon = () => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Animación de entrada
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Animación de pulso continuo (más sutil)
+    const pulseAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.05,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    // Iniciar el pulso después de la animación de entrada
+    const timeoutId = setTimeout(() => {
+      pulseAnimation.start();
+    }, 1200);
+
+    return () => {
+      clearTimeout(timeoutId);
+      pulseAnimation.stop();
+    };
+  }, [fadeAnim, scaleAnim, pulseAnim]);
+
+  return (
+    <Animated.View
+      style={{
+        opacity: fadeAnim,
+        transform: [
+          { scale: scaleAnim },
+          { scale: pulseAnim },
+        ],
+      }}
+    >
+      <Svg width="144" height="89" viewBox="0 0 144 89" fill="none">
+        <Defs>
+          <ClipPath id="clip-path">
+            <Rect id="Rectángulo_4" data-name="Rectángulo 4" width="125.398" height="72.512" fill="none"/>
+          </ClipPath>
+          <ClipPath id="clip-carman-logo">
+            <Rect width="144" height="89"/>
+          </ClipPath>
+        </Defs>
+        <G id="carman-logo" clipPath="url(#clip-carman-logo)">
+          <G id="Grupo_136" data-name="Grupo 136" transform="translate(-27.602 -42.35)">
+            <G id="Grupo_10" data-name="Grupo 10" transform="translate(36.602 50.35)">
+              <Path id="Trazado_26" data-name="Trazado 26" d="M44.221,148.128l-2.156,4.989-2.125-4.989H38.194l3.013,6.985h1.6l3.024-6.985Z" transform="translate(-21.329 -82.72)" fill="#fff"/>
+              <Path id="Trazado_27" data-name="Trazado 27" d="M59,149.715l1.107,2.675H57.894Zm-.789-1.587L55.1,155.113h1.657l.619-1.5h3.243l.618,1.5h1.7l-3.123-6.985Z" transform="translate(-30.77 -82.72)" fill="#fff"/>
+              <Path id="Trazado_28" data-name="Trazado 28" d="M75.4,148.128v6.985h5.119V153.8h-3.5v-5.667Z" transform="translate(-42.106 -82.72)" fill="#fff"/>
+              <Path id="Trazado_29" data-name="Trazado 29" d="M89.956,148.128v6.985h5.408v-1.3h-3.8V152.2h3.243v-1.258H91.562v-1.516h3.672v-1.3Z" transform="translate(-50.235 -82.72)" fill="#fff"/>
+              <Path id="Trazado_30" data-name="Trazado 30" d="M104.241,148.128v1.317h2.235v5.667h1.617v-5.667h2.235v-1.317Z" transform="translate(-58.212 -82.72)" fill="#fff"/>
+              <G id="Grupo_5" data-name="Grupo 5">
+                <G id="Grupo_4" data-name="Grupo 4" clipPath="url(#clip-path)">
+                  <Path id="Trazado_31" data-name="Trazado 31" d="M134.257,150.662c0,1.557-1.167,2.525-3.033,2.525h-1.408v1.926H128.2v-6.985h3.023c1.866,0,3.033.967,3.033,2.534m-1.636,0c0-.768-.5-1.217-1.487-1.217h-1.318v2.425h1.318c.988,0,1.487-.449,1.487-1.207" transform="translate(-71.592 -82.72)" fill="#fff"/>
+                  <Path id="Trazado_32" data-name="Trazado 32" d="M148.072,153.617h-3.243l-.619,1.5h-1.656l3.113-6.985h1.6l3.124,6.985h-1.7Zm-.509-1.227-1.107-2.675-1.108,2.675Z" transform="translate(-79.608 -82.721)" fill="#fff"/>
+                  <Path id="Trazado_33" data-name="Trazado 33" d="M167.3,155.114l-1.347-1.946h-1.487v1.946h-1.617v-6.985h3.023c1.866,0,3.034.967,3.034,2.534a2.27,2.27,0,0,1-1.437,2.205l1.567,2.245Zm-1.517-5.668h-1.317v2.435h1.317c.988,0,1.487-.459,1.487-1.217s-.5-1.217-1.487-1.217" transform="translate(-90.943 -82.721)" fill="#fff"/>
+                  <Path id="Trazado_34" data-name="Trazado 34" d="M182.914,152.368l-.938.978v1.766h-1.606v-6.985h1.606v3.263l3.094-3.263h1.8l-2.894,3.113,3.064,3.872h-1.886Z" transform="translate(-100.725 -82.72)" fill="#fff"/>
+                  <Rect id="Rectángulo_3" data-name="Rectángulo 3" width="1.616" height="6.985" transform="translate(87.429 65.408)" fill="#fff"/>
+                  <Path id="Trazado_35" data-name="Trazado 35" d="M212.724,148.128v6.985H211.4l-3.483-4.241v4.241h-1.6v-6.985h1.337l3.472,4.241v-4.241Z" transform="translate(-115.216 -82.721)" fill="#fff"/>
+                  <Path id="Trazado_36" data-name="Trazado 36" d="M229.65,151.358h1.477v2.834a4.821,4.821,0,0,1-2.824.888,3.618,3.618,0,1,1,.03-7.225,3.724,3.724,0,0,1,2.924,1.208l-1.038.958a2.363,2.363,0,0,0-1.806-.788,2.236,2.236,0,1,0-.02,4.47,2.568,2.568,0,0,0,1.258-.3Z" transform="translate(-125.365 -82.569)" fill="#fff"/>
+                  <Path id="Trazado_37" data-name="Trazado 37" d="M1.053,105.617c0-4.607,4.29-7.873,10.132-7.873,3.4,0,6.132,1.017,7.922,2.855l-3.316,2.466a5.924,5.924,0,0,0-4.342-1.774c-3.026,0-5.132,1.73-5.132,4.326s2.105,4.326,5.132,4.326a5.924,5.924,0,0,0,4.342-1.774l3.316,2.466c-1.79,1.838-4.526,2.855-7.922,2.855-5.842,0-10.132-3.265-10.132-7.873" transform="translate(-0.588 -54.584)" fill="#fff"/>
+                  <Path id="Trazado_38" data-name="Trazado 38" d="M56.011,110.628h-7.79l-1.447,2.942H41.458L49.59,98.43h5.131l8.159,15.14H57.459Zm-1.526-3.158-2.369-4.845-2.368,4.845Z" transform="translate(-23.152 -54.967)" fill="#fff"/>
+                  <Path id="Trazado_39" data-name="Trazado 39" d="M101.36,109.547H98.517v4.023h-5.21V98.43h8.421c5.027,0,8.185,2.141,8.185,5.6,0,2.228-1.316,3.872-3.605,4.78l3.974,4.758H104.7Zm.053-7.743h-2.9v4.434h2.9c2.158,0,3.237-.822,3.237-2.206,0-1.406-1.079-2.228-3.237-2.228" transform="translate(-52.106 -54.967)" fill="#fff"/>
+                  <Path id="Trazado_40" data-name="Trazado 40" d="M154.039,113.569l-.053-8.024-4.738,6.532h-2.316l-4.711-6.315v7.808h-4.816V98.43h4.29l6.474,8.738,6.316-8.738h4.29l.053,15.139Z" transform="translate(-76.733 -54.967)" fill="#fff"/>
+                  <Path id="Trazado_41" data-name="Trazado 41" d="M203.806,110.628h-7.79l-1.447,2.942h-5.316l8.132-15.14h5.132l8.159,15.14h-5.421Zm-1.526-3.158-2.369-4.845-2.369,4.845Z" transform="translate(-105.686 -54.967)" fill="#fff"/>
+                  <Path id="Trazado_42" data-name="Trazado 42" d="M258.629,98.43v15.139h-4.29l-8.132-8.067v8.067H241.1V98.43h4.29l8.132,8.067V98.43Z" transform="translate(-134.64 -54.967)" fill="#fff"/>
+                  <Path id="Trazado_43" data-name="Trazado 43" d="M125.38,32.02a.8.8,0,0,0,.011-.239c-.1-.31-.2-.623-.323-.923a23.2,23.2,0,0,0-6.353-8.663c-5.526-4.774-12.123-6.862-19.265-7.288-6.377-.381-12.772-.49-19.121-1.275-5.9-.729-11.808-1.384-17.676-2.3-7.386-1.157-14.737-2.543-22.1-3.844-1.278-.226-2.545-.516-3.839-.781.057-.108.069-.172.1-.184.519-.205,1.034-.422,1.561-.6a66.079,66.079,0,0,1,31.76-3.161A49.754,49.754,0,0,1,86.56,8.244c1.318.719,2.6,1.507,4.08,2.369a4.571,4.571,0,0,0-.343-.392c-.644-.537-1.269-1.1-1.942-1.6A42.291,42.291,0,0,0,72.421,1.579,72.181,72.181,0,0,0,47.036.716a115.956,115.956,0,0,0-17.224,3.6,7,7,0,0,1-1.646.246A60.231,60.231,0,0,0,10.848,7.444C7.372,8.618,4.1,10.185,1.6,12.989,1.012,13.65.531,14.408,0,15.121l.158.13c.1-.078.194-.161.3-.233a42.38,42.38,0,0,1,4.227-2.939A29.634,29.634,0,0,1,17.067,8.993,71.624,71.624,0,0,1,36.7,10.863c4.1.886,8.183,1.884,12.321,2.512,5.2.79,10.442,1.372,15.685,1.82,4.6.392,9.219.549,13.834.675,7.46.2,14.931.018,22.377.688a27.135,27.135,0,0,1,10.4,2.744,28.354,28.354,0,0,1,7.79,5.614,9.192,9.192,0,0,1,2.429,4.027,2.288,2.288,0,0,1-1.351,2.875c-.123.058-.244.121-.421.209l5.606-.007" transform="translate(0 0)" fill="#fff"/>
+                  <Path id="Trazado_44" data-name="Trazado 44" d="M37.47,46.085c.235-5.874-1.7-10.8-6.763-14.045-4.719-3.022-9.656-2.918-14.359.125A14.965,14.965,0,0,0,9.86,46.172C11.2,38.726,17.126,33.856,23.517,33.79c6.434-.066,12.523,4.769,13.953,12.3" transform="translate(-5.455 -16.657)" fill="#fff"/>
+                  <Path id="Trazado_45" data-name="Trazado 45" d="M125.538,49.99l-.032-.135c-.161-.008-.323-.024-.483-.021a105.794,105.794,0,0,1-15.635-.807,55.806,55.806,0,0,1-13.165-3.094,20.8,20.8,0,0,1-8.985-5.961A10.575,10.575,0,0,1,85.152,36.1L91.453,35c0-.024-.008-.048-.011-.072L82.4,33.751c.2.916.321,1.792.584,2.623a16.694,16.694,0,0,0,7.692,9.341c5.068,3.079,10.7,4.31,16.516,4.692,3.668.241,7.362.2,11.042.136,2.438-.044,4.872-.359,7.307-.553" transform="translate(-46.014 -18.848)" fill="#fff"/>
+                  <Path id="Trazado_46" data-name="Trazado 46" d="M218.078,54.568c.154-4.283-1.261-7.919-4.772-10.49a9.88,9.88,0,0,0-11.431-.679c-4.278,2.46-5.94,6.444-5.861,11.251,1.644-5.742,5.053-9.525,11.361-9.569,4.641-.032,9.274,3.408,10.7,9.486" transform="translate(-109.461 -23.397)" fill="#fff"/>
+                  <Path id="Trazado_47" data-name="Trazado 47" d="M38.687,51.713a6.334,6.334,0,1,1-6.342-6.327,6.334,6.334,0,0,1,6.342,6.327" transform="translate(-14.529 -25.345)" fill="#fff"/>
+                  <Path id="Trazado_48" data-name="Trazado 48" d="M220.818,59.734a6.334,6.334,0,1,1-6.342-6.327,6.334,6.334,0,0,1,6.342,6.327" transform="translate(-116.239 -29.825)" fill="#fff"/>
+                  <Path id="Trazado_49" data-name="Trazado 49" d="M163.982,58.7a13.033,13.033,0,0,0,.57-1.637,5.5,5.5,0,0,0,.12-1.7c-.19-1.79-1.344-2.277-3.953-1.87-4.209.656-8.444,1.241-12.667,1.856l-.125-.355c4.588-.923,9.151-1.91,13.778-2.742,2.03-.365,3.718.6,4.061,2.082.37,1.6-.244,3.058-1.783,4.365" transform="translate(-82.608 -29.136)" fill="#fff"/>
+                  <Path id="Trazado_50" data-name="Trazado 50" d="M104.049,41.656a.734.734,0,0,0,.593.671,7.2,7.2,0,0,0,4.31-.04c.642-.181.8-.5.459-.839a3.223,3.223,0,0,0-2.191-.778,3.279,3.279,0,0,0-1.219.082,20.852,20.852,0,0,0-1.953.905" transform="translate(-58.105 -22.701)" fill="#fff"/>
+                </G>
+              </G>
+            </G>
+          </G>
+        </G>
+      </Svg>
+    </Animated.View>
+  );
+};
