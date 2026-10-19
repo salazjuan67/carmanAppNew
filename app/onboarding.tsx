@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, Dimensions, Animated, Image } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, Animated, Image, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, borderRadius } from '../src/config/theme';
 import { CarmanIcon } from '../src/components/CarmanIcon';
 import { WideButton } from '../src/components/WideButton';
@@ -42,6 +43,7 @@ const onboardingScreens: OnboardingScreen[] = [
 ];
 
 export default function OnboardingScreen() {
+  const insets = useSafeAreaInsets();
   const [currentScreen, setCurrentScreen] = useState(0);
   const [carStates, setCarStates] = useState<Array<'ESTACIONADO' | 'SOLICITADO' | 'EN CAMINO'>>(
     Array(12).fill('ESTACIONADO')
@@ -132,10 +134,24 @@ export default function OnboardingScreen() {
 
   const currentScreenData = onboardingScreens[currentScreen];
   const IconComponent = currentScreenData.icon;
+  const isLastScreen = currentScreen === onboardingScreens.length - 1;
+
+  const handleSkip = () => {
+    router.replace('/auth');
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: currentScreenData.backgroundColor }]}>
-      {/* Background Pattern - Removed animated bubbles */}
+      {!isLastScreen && (
+        <TouchableOpacity
+          onPress={handleSkip}
+          style={[styles.skipButton, { top: insets.top + spacing.sm }]}
+          accessibilityRole="button"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.skipText}>Omitir</Text>
+        </TouchableOpacity>
+      )}
 
       {/* Logo Section */}
       <View style={styles.logoSection}>
@@ -542,6 +558,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: spacing['2xl'],
+  },
+  skipButton: {
+    position: 'absolute',
+    right: spacing.lg,
+    zIndex: 10,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  skipText: {
+    color: colors.white,
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.semibold,
   },
   backgroundPattern: {
     ...StyleSheet.absoluteFillObject,

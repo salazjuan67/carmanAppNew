@@ -1,13 +1,31 @@
-import { View, Text, ImageBackground, Image, StyleSheet } from 'react-native';
+import { useEffect } from 'react';
+import { View, Text, ImageBackground, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { colors, typography, spacing } from '../src/config/theme';
 import { CarmanIcon } from '../src/components/CarmanIcon';
 import { WideButton } from '../src/components/WideButton';
+import { useAuth } from '../src/hooks/useAuth';
 
 export default function WelcomeScreen() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.replace('/home');
+    }
+  }, [isLoading, isAuthenticated]);
+
   const handleContinue = () => {
     router.push('/onboarding');
   };
+
+  const handleSkip = () => {
+    router.replace('/auth');
+  };
+
+  if (isLoading || isAuthenticated) {
+    return <View style={styles.container} />;
+  }
 
   return (
     <View style={styles.container}>
@@ -42,6 +60,14 @@ export default function WelcomeScreen() {
 
       <View style={styles.buttonSection}>
         <WideButton title="Continuar" onPress={handleContinue} />
+        <TouchableOpacity
+          onPress={handleSkip}
+          style={styles.skipButton}
+          accessibilityRole="button"
+          hitSlop={{ top: 8, bottom: 8, left: 16, right: 16 }}
+        >
+          <Text style={styles.skipText}>Omitir</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -102,5 +128,17 @@ const styles = StyleSheet.create({
   buttonSection: {
     paddingHorizontal: spacing['2xl'],
     paddingBottom: spacing['2xl'],
+  },
+  skipButton: {
+    alignSelf: 'center',
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
+  skipText: {
+    color: colors.white,
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.semibold,
+    opacity: 0.85,
   },
 });

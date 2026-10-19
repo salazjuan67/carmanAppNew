@@ -18,12 +18,13 @@ export interface LoginCredentials {
 
 class AuthService {
   private static instance: AuthService;
+  /** isLoading arranca en true hasta que initialize() lea el almacenamiento; si no, las pantallas protegidas mandan al login antes de restaurar la sesión. */
   private authState: AuthState = {
     isAuthenticated: false,
     user: null,
     token: null,
     refreshToken: null,
-    isLoading: false,
+    isLoading: true,
   };
 
   private listeners: ((state: AuthState) => void)[] = [];

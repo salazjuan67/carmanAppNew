@@ -5,6 +5,7 @@ import { AppState, AppStateStatus } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { useAuth } from '../src/hooks/useAuth';
+import { authService } from '../src/services/authService';
 import { QueryProvider } from '../src/providers/QueryProvider';
 import { LanguageProvider } from '../src/contexts/LanguageContext';
 import '../global.css';
@@ -32,10 +33,10 @@ export default function RootLayout() {
   // Restore session when app comes back to foreground
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'active') {
-        // App has come to the foreground - restore session
+      // Con sesión activa no re-inicializar: initialize() pone isLoading y AuthGuard desmonta la pantalla (Android vuelve a 'active' tras cámara, permisos o la bandeja).
+      if (nextAppState === 'active' && !authService.isAuthenticated()) {
         console.log('📱 App came to foreground - restoring session');
-        initialize();
+        void initialize();
       }
     });
 
