@@ -5,6 +5,8 @@ class SoundService {
   private static instance: SoundService;
   private soundObject: Audio.Sound | null = null;
   private isInitialized = false;
+  private isPlaying = false;
+  private lastStartedAt = 0;
 
   static getInstance(): SoundService {
     if (!SoundService.instance) {
@@ -56,6 +58,14 @@ class SoundService {
    * Plays the sound multiple times for better noticeability
    */
   async playNotificationSound(): Promise<void> {
+    const now = Date.now();
+    if (this.isPlaying || now - this.lastStartedAt < 6000) {
+      return;
+    }
+
+    this.isPlaying = true;
+    this.lastStartedAt = now;
+
     try {
       // Initialize audio mode first (critical for iOS)
       await this.initializeAudio();
@@ -123,6 +133,8 @@ class SoundService {
     } catch (error) {
       console.error('❌ Error playing notification sound:', error);
       // Fail silently - don't interrupt the notification flow
+    } finally {
+      this.isPlaying = false;
     }
   }
 

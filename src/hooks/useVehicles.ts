@@ -3,8 +3,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { vehicleService } from '../services/vehicleService';
 import { STORAGE_KEYS } from '../config/constants';
 import { apiClient } from '../services/apiClient';
-import { oneSignalService } from '../services/oneSignalService';
-import { useStateChangeDetection } from './useStateChangeDetection';
 import { Vehicle, Brand, VehicleFound, VehicleFormData, UpdateVehicleState, Establishment } from '../types/vehicle';
 
 const SELECTED_ESTABLISHMENT_KEY = 'selected_establishment';
@@ -111,9 +109,6 @@ export const useVehicles = (establishmentId?: string) => {
     fetchBrands();
   }, [fetchBrands]);
 
-  // Detect state changes and add notifications
-  useStateChangeDetection(vehicles, establishmentId);
-
   return {
     vehicles,
     brands,
@@ -168,27 +163,9 @@ export const useEstablishments = () => {
     }
   }, []);
 
-  // Function to update OneSignal tags when establishment changes
-  const updateOneSignalTags = useCallback(async (establishment: Establishment | null) => {
-    try {
-      if (establishment) {
-        console.log('🔔 Updating OneSignal tags for establishment:', establishment.nombre);
-        await oneSignalService.setUserTags({
-          establishment_id: establishment._id,
-          establishment_name: establishment.nombre,
-        });
-        console.log('✅ OneSignal tags updated:', {
-          establishment_id: establishment._id,
-          establishment_name: establishment.nombre,
-        });
-      } else {
-        console.log('🔔 Clearing OneSignal establishment tags');
-        await oneSignalService.setUserTags({});
-        console.log('✅ OneSignal establishment tags cleared');
-      }
-    } catch (error) {
-      console.error('❌ Error updating OneSignal tags:', error);
-    }
+  // OneSignal desactivado — no tocar el módulo nativo al cambiar establecimiento.
+  const updateOneSignalTags = useCallback((_establishment: Establishment | null) => {
+    // no-op
   }, []);
 
   const fetchEstablishments = useCallback(async () => {
@@ -339,16 +316,12 @@ export const useEstablishments = () => {
     fetchEstablishments();
   }, [fetchEstablishments]);
 
-  // Custom setter that updates OneSignal tags when establishment changes
-  const handleSetSelectedEstablishment = useCallback(async (establishment: Establishment | null) => {
+  // Custom setter: actualizar UI al instante; persistencia y tags en segundo plano.
+  const handleSetSelectedEstablishment = useCallback((establishment: Establishment | null) => {
     console.log('🏢 Changing establishment to:', establishment?.nombre || 'None');
     setSelectedEstablishment(establishment);
-    
-    // Save to storage
-    await saveSelectedEstablishment(establishment);
-    
-    // Update OneSignal tags when establishment changes
-    await updateOneSignalTags(establishment);
+    void saveSelectedEstablishment(establishment);
+    updateOneSignalTags(establishment);
   }, [updateOneSignalTags, saveSelectedEstablishment]);
 
   return {

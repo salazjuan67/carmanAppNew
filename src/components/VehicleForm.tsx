@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,9 @@ import {
   Alert,
   Pressable,
   ScrollView,
-  KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useWatch, type Control } from 'react-hook-form';
 import { ChevronDown, ChevronUp, Camera } from 'lucide-react-native';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
@@ -32,6 +31,52 @@ import { PhysicalCardButton } from './PhysicalCardButton';
 import { PhysicalCard } from '../types/vehicle';
 import { physicalCardService } from '../services/physicalCardService';
 import { useQueryClient } from '@tanstack/react-query';
+
+function PlateLookup({
+  control,
+  onSearch,
+}: {
+  control: Control<VehicleFormDataZod>;
+  onSearch: (plate: string) => void;
+}) {
+  const patente = useWatch({ control, name: 'patente' }) ?? '';
+  const onSearchRef = useRef(onSearch);
+  onSearchRef.current = onSearch;
+
+  useEffect(() => {
+    if (patente && PATENTE_REGEX.test(patente)) {
+      onSearchRef.current(patente);
+    }
+  }, [patente]);
+
+  return null;
+}
+
+function AddVehicleButton({
+  control,
+  disabledExtra,
+  label,
+  onPress,
+}: {
+  control: Control<VehicleFormDataZod>;
+  disabledExtra: boolean;
+  label: string;
+  onPress: () => void;
+}) {
+  const patente = useWatch({ control, name: 'patente' }) ?? '';
+  const sector = useWatch({ control, name: 'sector' }) ?? '';
+  const disabled = disabledExtra || !patente.trim() || !sector.trim();
+
+  return (
+    <TouchableOpacity
+      style={[styles.submitButton, disabled && styles.submitButtonDisabled]}
+      onPress={onPress}
+      disabled={disabled}
+    >
+      <Text style={styles.submitButtonText}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
 
 interface VehicleFormProps {
   establishmentId: string;
@@ -74,10 +119,9 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
     control,
     reset,
     setValue,
-    watch,
     getValues,
   } = useForm<VehicleFormDataZod>({
-    mode: 'onChange',
+    mode: 'onSubmit',
     defaultValues: {
       patente: '',
       sector: '',
@@ -91,11 +135,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
     },
   });
 
-  const watchedPatente = watch('patente');
-  const watchedSector = watch('sector');
-
-      // Función para buscar patente
-      const searchPlate = async (plate: string) => {
+  const searchPlate = async (plate: string) => {
         if (!plate || plate.length < 6) return;
 
         try {
@@ -143,13 +183,6 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
       setIsDisabled(false);
     }
   };
-
-  // Efecto para buscar patente cuando cambia
-  useEffect(() => {
-    if (watchedPatente && PATENTE_REGEX.test(watchedPatente)) {
-      searchPlate(watchedPatente);
-    }
-  }, [watchedPatente]);
 
   const onSubmit = async (data: VehicleFormDataZod) => {
     const patente = data.patente.trim().toUpperCase();
@@ -235,8 +268,9 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
   };
 
   const handleFormSubmit = () => {
-    const patente = (watch('patente') ?? '').trim().toUpperCase();
-    const sector = (watch('sector') ?? '').trim();
+    const values = getValues();
+    const patente = (values.patente ?? '').trim().toUpperCase();
+    const sector = (values.sector ?? '').trim();
 
     if (!patente) {
       Alert.alert(t('warning'), t('plateRequired'));
@@ -300,17 +334,13 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
     }
   };
 
-  const content = (
-    <KeyboardAvoidingView
-      style={styles.keyboardAvoiding}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
-    >
+  const formBody = (
       <View style={embedded ? styles.embeddedContainer : styles.container}>
         <ScrollView
           style={styles.scrollContainer}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
           showsVerticalScrollIndicator={false}
         >
           {/* Badge VIP - Solo se muestra si es VIP */}
@@ -320,7 +350,7 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
             </View>
           )}
 
-          <View>
+          <PlateLookup control={control} onSearch={searchPlate} />
             {/* Fila de Patente y Sector */}
             <View style={styles.rowContainer}>
               {/* Patente */}
@@ -340,8 +370,13 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
                           onBlur={onBlur}
                           placeholder={t('plate')}
                           placeholderTextColor={colors.darkGrey}
-                          autoCapitalize="characters"
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          autoComplete="off"
+                          textContentType="none"
+                          spellCheck={false}
                           maxLength={8}
+                          returnKeyType="next"
                         />
                       </View>
                       <Pressable 
@@ -361,17 +396,13 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
                 <Controller
                   control={control}
                   name="sector"
-                  render={({ field: { onChange, value } }) => {
-                    // temporal — confirmar sectores del store al renderizar SectorSelector
-                    console.log('🏢 sectores disponibles:', selectedEstablishment?.sectores);
-                    return (
+                  render={({ field: { onChange, value } }) => (
                       <SectorSelector
                         sectors={selectedEstablishment?.sectores || []}
                         selectedSector={value}
                         onSectorChange={onChange}
                       />
-                    );
-                  }}
+                  )}
                 />
               </View>
             </View>
@@ -493,33 +524,15 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
               </View>
             </View>
           )}
-          </View>
         </ScrollView>
 
         <View style={styles.footerActions}>
-        <TouchableOpacity
-          style={[
-            styles.submitButton,
-            (isPending ||
-              isDisabled ||
-              isAIProcessing ||
-              !(watchedPatente ?? '').trim() ||
-              !(watchedSector ?? '').trim()) &&
-              styles.submitButtonDisabled,
-          ]}
+        <AddVehicleButton
+          control={control}
+          disabledExtra={isPending || isDisabled || isAIProcessing}
+          label={isPending ? t('adding') : isAIProcessing ? t('processing') : t('addVehicle')}
           onPress={handleFormSubmit}
-          disabled={
-            isPending ||
-            isDisabled ||
-            isAIProcessing ||
-            !(watchedPatente ?? '').trim() ||
-            !(watchedSector ?? '').trim()
-          }
-        >
-          <Text style={styles.submitButtonText}>
-            {isPending ? t('adding') : isAIProcessing ? t('processing') : t('addVehicle')}
-          </Text>
-        </TouchableOpacity>
+        />
         
         <TouchableOpacity
           style={styles.backButton}
@@ -549,8 +562,9 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
         onImageCaptured={handleImageCaptured}
       />
     </View>
-    </KeyboardAvoidingView>
   );
+
+  const content = formBody;
 
   const handleSuccessClose = () => {
     setShowSuccess(false);

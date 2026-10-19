@@ -69,7 +69,7 @@ export const EstablishmentSelector: React.FC<EstablishmentSelectorProps> = ({
             
             <FlatList
               data={establishments}
-              keyExtractor={(item) => item._id}
+              keyExtractor={(item, index) => item._id || `est-${index}`}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={[

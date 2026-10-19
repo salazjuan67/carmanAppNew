@@ -9,17 +9,41 @@ import { useLanguage } from '../src/contexts/LanguageContext';
 import { useEstablishmentStore } from '../src/store/establishmentStore';
 import { dateFormat } from '../src/utils/formatters';
 
+import { NOTIFICATIONS_CONFIG } from '../src/config/constants';
+
 export default function NotificationsScreen() {
   const { t } = useLanguage();
   const { selectedEstablishment } = useEstablishmentStore();
-  const { 
-    notifications, 
-    unreadCount, 
-    markAsRead, 
-    markAllAsRead, 
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
     clearEstablishmentNotifications,
-    addVehicleRequestedNotification
+    addVehicleRequestedNotification,
   } = useLocalNotifications(selectedEstablishment?._id);
+
+  if (!NOTIFICATIONS_CONFIG.ENABLED) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <ArrowLeft size={24} color="white" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t('notifications')}</Text>
+          <View style={styles.backButton} />
+        </View>
+        <View style={styles.content}>
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateTitle}>Notificaciones desactivadas</Text>
+            <Text style={styles.emptyStateText}>
+              Esta función está temporalmente deshabilitada.
+            </Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // Debug logs
   console.log('🔔 NotificationsScreen - selectedEstablishment:', selectedEstablishment?._id);

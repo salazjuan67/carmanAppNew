@@ -18,6 +18,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../src/hooks/useAuth';
 import { useEstablishments } from '../src/hooks/useVehicles';
 import { useVehiclesWithPolling } from '../src/hooks/useVehiclesWithPolling';
+import { useStateChangeDetection } from '../src/hooks/useStateChangeDetection';
 import { getEstablishmentShift } from '../src/services/shiftServiceNew';
 import { AuthGuard } from '../src/components/AuthGuard';
 import { VehicleList } from '../src/components/VehicleList';
@@ -27,12 +28,12 @@ import { useShiftStore } from '../src/store/shiftStore';
 import { useEstablishmentStore } from '../src/store/establishmentStore';
 import { LanguageSelector } from '../src/components/LanguageSelector';
 import { NotificationBell } from '../src/components/NotificationBell';
+import { PermissionPrompt } from '../src/components/PermissionPrompt';
 import { useLanguage } from '../src/contexts/LanguageContext';
 import { isSessionExpiredVehicleError } from '../src/services/sessionExpired';
 import { isIngresosEstado, isSolicitadosEstado } from '../src/utils/vehicleEstado';
 import { useResponsiveLayout } from '../src/hooks/useResponsiveLayout';
 import { useNotifications } from '../src/hooks/useNotifications';
-import { PermissionPrompt } from '../src/components/PermissionPrompt';
 
 export default function HomeScreen() {
   const { logout, user } = useAuth();
@@ -85,8 +86,6 @@ const HomeScreenContent = React.memo(function HomeScreenContent({ logout, user, 
   handleLogout: () => void;
 }) {
   const { t } = useLanguage();
-  const { requestPermission, shouldShowPermissionPrompt } = useNotifications();
-  const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
   const {
     isTablet,
     contentMaxWidth,
@@ -108,6 +107,11 @@ const HomeScreenContent = React.memo(function HomeScreenContent({ logout, user, 
       : user?.establecimiento?._id;
   // Priorizar siempre el selector; ?? evita saltar a user cuando _id existe pero otros campos no
   const establishmentId = selectedEstablishment?._id ?? userEstablishmentId;
+  const { requestPermission, shouldShowPermissionPrompt } = useNotifications(
+    establishmentId,
+    user?._id
+  );
+  const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
 
   // Misma query que ShiftButtonSimple (queryKey compartido) para que la lista use el mismo turno que el candado
   const shiftFromStore = useShiftStore((state) => state.shift);
@@ -127,6 +131,7 @@ const HomeScreenContent = React.memo(function HomeScreenContent({ logout, user, 
   // Use vehicles hook with polling
   const { vehicles, loading, refetch, error: vehiclesError } =
     useVehiclesWithPolling(establishmentId);
+  useStateChangeDetection(vehicles, establishmentId);
 
   const vehiclesErrorMessage = useMemo(() => {
     if (vehiclesError == null) return '';
@@ -198,12 +203,14 @@ const HomeScreenContent = React.memo(function HomeScreenContent({ logout, user, 
                 </Text>
               </View>
               <View style={styles.headerButtons}>
-                <NotificationBell
-                  onPress={() => router.push('/notifications')}
-                  size={24}
-                  color="white"
-                  establishmentId={establishmentId}
-                />
+                {Platform.OS !== 'web' && (
+                  <NotificationBell
+                    onPress={() => router.push('/notifications')}
+                    size={24}
+                    color="white"
+                    establishmentId={establishmentId}
+                  />
+                )}
                 <View style={styles.languageButtonContainer}>
                   <LanguageSelector />
                 </View>
@@ -227,8 +234,12 @@ const HomeScreenContent = React.memo(function HomeScreenContent({ logout, user, 
               establishments={establishments}
               selectedEstablishment={selectedEstablishment}
               onSelect={(establishment) => {
-                setSelectedEstablishment(establishment);
-                setSelectedEstablishmentInStore(establishment);
+                try {
+                  setSelectedEstablishment(establishment);
+                  setSelectedEstablishmentInStore(establishment);
+                } catch (e) {
+                  console.warn('Establishment change failed:', e);
+                }
               }}
               loading={establishmentsLoading}
               activeVehicleCount={activeVehicleCount}
@@ -252,6 +263,7 @@ const HomeScreenContent = React.memo(function HomeScreenContent({ logout, user, 
         {/* Vehicle List */}
         <View style={styles.vehicleSection}>
             <VehicleList 
+              key={establishmentId ?? 'no-est'}
               vehicles={vehicles} 
               loading={loading}
               onRefresh={refetch}
@@ -280,7 +292,6 @@ const HomeScreenContent = React.memo(function HomeScreenContent({ logout, user, 
         </TouchableOpacity>
       </View>
       </View>
-
       {showPermissionPrompt ? (
         <PermissionPrompt
           onRequestPermission={requestPermission}

@@ -1,25 +1,36 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { router } from 'expo-router';
-import { API_ENDPOINTS, API_CONFIG, ANDROID_VEHICLE_NOTIFICATION_CHANNEL_ID } from '../config/constants';
+import { API_ENDPOINTS, API_CONFIG, ANDROID_VEHICLE_NOTIFICATION_CHANNEL_ID, NOTIFICATIONS_CONFIG } from '../config/constants';
+import { apiClient } from './apiClient';
 import { useHomeUiStore } from '../store/homeUiStore';
+import { soundService } from './soundService';
 
-// Configure notification handler (no tumbar el arranque si falla en algún entorno)
-try {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-    }),
-  });
-} catch (e) {
-  console.warn('⚠️ setNotificationHandler failed:', e);
+const notificationsEnabled = () =>
+  NOTIFICATIONS_CONFIG.ENABLED &&
+  ((Platform.OS === 'ios' && NOTIFICATIONS_CONFIG.IOS_ENABLED) ||
+    (Platform.OS === 'android' && NOTIFICATIONS_CONFIG.ANDROID_ENABLED));
+
+// Solo registrar handler si las notificaciones están habilitadas
+if (notificationsEnabled()) {
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      }),
+    });
+  } catch (e) {
+    console.warn('⚠️ setNotificationHandler failed:', e);
+  }
 }
 
 export class NotificationService {
   private static instance: NotificationService;
   private deviceToken: string | null = null;
+  private initialized = false;
+  private listenersConfigured = false;
 
   static getInstance(): NotificationService {
     if (!NotificationService.instance) {
@@ -32,6 +43,12 @@ export class NotificationService {
    * Initialize notification service
    */
   async initialize(): Promise<boolean> {
+    if (!notificationsEnabled()) {
+      return false;
+    }
+    if (this.initialized && this.deviceToken) {
+      return true;
+    }
     try {
       console.log('🔔 Initializing notification service...');
 
@@ -64,9 +81,13 @@ export class NotificationService {
         }
       }
 
-      // Setup notification listeners
-      this.setupNotificationListeners();
+      // Setup notification listeners only once (Home can mount more than once).
+      if (!this.listenersConfigured) {
+        this.setupNotificationListeners();
+        this.listenersConfigured = true;
+      }
 
+      this.initialized = true;
       console.log('✅ Notification service initialized successfully');
       return true;
     } catch (error) {
@@ -94,28 +115,29 @@ export class NotificationService {
    * Setup notification event listeners
    */
   private setupNotificationListeners() {
-    // Listener for notification received
     Notifications.addNotificationReceivedListener((notification) => {
       console.log('📱 Notification received:', notification);
+      const data = notification.request.content.data;
+      if (data?.type === 'vehicle_requested') {
+        useHomeUiStore.getState().requestSolicitadosTabOnHome();
+        useHomeUiStore.getState().requestVehiclesRefresh();
+        void soundService.playNotificationSound();
+      }
     });
 
-    // Listener for notification tapped
     Notifications.addNotificationResponseReceivedListener((response) => {
       console.log('📱 Notification tapped:', response);
-      // Handle navigation based on notification data
       this.handleNotificationTap(response);
     });
   }
 
-  /**
-   * Handle notification tap
-   */
   private handleNotificationTap(response: Notifications.NotificationResponse) {
     const data = response.notification.request.content.data;
-    
+
     if (data?.type === 'vehicle_requested') {
       console.log('🚗 Vehicle requested notification tapped → home / Solicitados');
       useHomeUiStore.getState().requestSolicitadosTabOnHome();
+      useHomeUiStore.getState().requestVehiclesRefresh();
       router.replace('/home');
     }
   }
@@ -124,6 +146,7 @@ export class NotificationService {
    * Get unread notifications count from backend (like the old app)
    */
   async getUnreadCount(establishmentId: string): Promise<number> {
+    if (!notificationsEnabled()) return 0;
     try {
       if (!establishmentId) {
         console.log('❌ No establishment ID provided for unread count');
@@ -166,6 +189,7 @@ export class NotificationService {
     body: string,
     data?: any
   ): Promise<void> {
+    if (!notificationsEnabled()) return;
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -217,21 +241,40 @@ export class NotificationService {
    * Register device with backend
    */
   async registerDevice(establishmentId: string, userId?: string): Promise<boolean> {
+    if (!notificationsEnabled()) return false;
     try {
       if (!this.deviceToken) {
         console.log('❌ No device token available');
         return false;
       }
 
+      if (!this.deviceToken.startsWith('ExponentPushToken[')) {
+        console.warn('⚠️ Token no tiene formato Expo válido:', this.deviceToken.substring(0, 32));
+        return false;
+      }
+
       console.log(`📱 Registering device for establishment ${establishmentId}`);
-      
-      // TODO: Implement backend registration
-      // const response = await api.post('/notifications/register-device', {
-      //   deviceToken: this.deviceToken,
-      //   establishmentId,
-      //   userId,
-      //   platform: Platform.OS,
-      // });
+
+      const response = await apiClient.registerNotificationDevice({
+        deviceToken: this.deviceToken,
+        establishmentId,
+        userId,
+        platform: Platform.OS,
+      });
+
+      if (!response.success) {
+        const err = response.error || response.message || 'unknown';
+        if (/404|Cannot POST|not found/i.test(String(err))) {
+          console.warn(
+            '⚠️ Backend /notifications/register-device no disponible (404). Deploy pendiente en carman-back.'
+          );
+        } else if (/401|sesión|unauthorized/i.test(String(err))) {
+          console.warn('⚠️ Registro de dispositivo falló por autenticación (401):', err);
+        } else {
+          console.warn('⚠️ No se pudo registrar el dispositivo:', err);
+        }
+        return false;
+      }
 
       console.log('✅ Device registered successfully');
       return true;
@@ -242,9 +285,29 @@ export class NotificationService {
   }
 
   /**
+   * Deja de enviar push a este dispositivo. Se llama con la sesión todavía activa.
+   */
+  async unregisterDevice(): Promise<void> {
+    if (!notificationsEnabled()) return;
+    try {
+      const response = await apiClient.unregisterNotificationDevice({
+        deviceToken: this.deviceToken,
+      });
+      if (!response.success) {
+        console.warn('⚠️ No se pudo desregistrar el dispositivo:', response.error || response.message);
+        return;
+      }
+      console.log('✅ Device unregistered');
+    } catch (error) {
+      console.warn('⚠️ Error desregistrando dispositivo:', error);
+    }
+  }
+
+  /**
    * Clear all notifications
    */
   async clearAllNotifications(): Promise<void> {
+    if (!notificationsEnabled()) return;
     try {
       await Notifications.dismissAllNotificationsAsync();
       console.log('✅ All notifications cleared');
@@ -268,6 +331,7 @@ export class NotificationService {
     allowBadge?: boolean;
     allowSound?: boolean;
   }): Promise<boolean> {
+    if (!notificationsEnabled()) return false;
     try {
       const { status } = await Notifications.requestPermissionsAsync(settings);
       return status === 'granted';

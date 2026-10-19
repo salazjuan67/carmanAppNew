@@ -2,7 +2,7 @@
   "expo": {
     "name": "Carman",
     "slug": "carman-jusalazar-app",
-    "version": "14.2.0",
+    "version": "14.2.3",
     "scheme": "carman",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.carmanapp.baires",
-      "buildNumber": "18",
+      "buildNumber": "29",
       "supportsTablet": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -24,18 +24,23 @@
         "NSLocationWhenInUseUsageDescription": "Carman no usa tu ubicación de forma activa. Algunas librerías incluidas en la app pueden acceder a APIs de ubicación del sistema; este texto cumple el requisito de Apple.",
         "UIRequiresFullScreen": true,
         "UIStatusBarStyle": "UIStatusBarStyleLightContent",
-        "UIViewControllerBasedStatusBarAppearance": false
+        "UIViewControllerBasedStatusBarAppearance": false,
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
-      "versionCode": 17,
+      "versionCode": 28,
       "package": "com.darey16.carman",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#081024"
       },
       "permissions": [
         "android.permission.CAMERA",
+        "android.permission.POST_NOTIFICATIONS",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE"
       ],
@@ -62,7 +67,13 @@
       "expo-router",
       "expo-secure-store",
       "expo-font",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "enableBackgroundRemoteNotifications": true,
+          "defaultChannel": "vehicle-requested-v1"
+        }
+      ],
       "expo-camera",
       "expo-image-picker",
       [
@@ -70,10 +81,12 @@
         {
           "android": {
             "minSdkVersion": 24,
-            "targetSdkVersion": 35,
-            "compileSdkVersion": 35,
+            "targetSdkVersion": 36,
+            "compileSdkVersion": 36,
             "usesCleartextTraffic": true,
-            "newArchEnabled": false
+            "newArchEnabled": false,
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
           },
           "ios": {
             "flipper": false,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { X, Car } from 'lucide-react-native';
@@ -20,8 +20,6 @@ export default function NewVehicleScreen() {
     enabled: !!establishmentId,
     staleTime: 0,
   });
-
-  console.log('🚗 NewVehicleScreen - selectedEstablishment:', selectedEstablishment);
 
   if (!selectedEstablishment) {
     return (
@@ -95,24 +93,11 @@ export default function NewVehicleScreen() {
         icon={<Car size={24} color={colors.primary[600]} />}
       />
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-      >
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <VehicleForm
-            establishmentId={selectedEstablishment._id}
-            embedded={true}
-            onSuccess={() => router.back()}
-          />
-        </ScrollView>
-      </KeyboardAvoidingView>
+      <VehicleForm
+        establishmentId={selectedEstablishment._id}
+        embedded={true}
+        onSuccess={() => router.back()}
+      />
     </View>
   );
 }

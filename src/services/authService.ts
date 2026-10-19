@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient, LoginRequest, LoginResponse, User } from './apiClient';
-import { STORAGE_KEYS } from '../config/constants';
+import { STORAGE_KEYS, ONESIGNAL_CONFIG } from '../config/constants';
 import { oneSignalService } from './oneSignalService';
 
 export interface AuthState {
@@ -188,6 +188,12 @@ class AuthService {
     try {
       console.log('🔐 Sesión inválida (401) — limpiando almacenamiento local');
       try {
+        const { notificationService } = await import('./notificationService');
+        await notificationService.unregisterDevice();
+      } catch (e) {
+        console.warn('⚠️ No se pudieron cortar las notificaciones:', e);
+      }
+      try {
         await oneSignalService.setUserTags({});
       } catch (e) {
         console.warn('⚠️ OneSignal clear on session expire:', e);
@@ -221,7 +227,14 @@ class AuthService {
   async logout(): Promise<void> {
     try {
       console.log('🔐 Logging out...');
-      
+
+      try {
+        const { notificationService } = await import('./notificationService');
+        await notificationService.unregisterDevice();
+      } catch (e) {
+        console.warn('⚠️ No se pudieron cortar las notificaciones al cerrar sesión:', e);
+      }
+
       // Call logout API
       await apiClient.logout();
       
@@ -365,6 +378,7 @@ class AuthService {
    * Configure OneSignal tags for the authenticated user
    */
   private async configureOneSignalTags(user: User): Promise<void> {
+    if (!ONESIGNAL_CONFIG.ENABLED) return;
     try {
       console.log('🔔 Configuring OneSignal tags for user:', user._id);
       

@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { useAuth } from '../src/hooks/useAuth';
 import { QueryProvider } from '../src/providers/QueryProvider';
@@ -44,24 +45,26 @@ export default function RootLayout() {
   }, [initialize]);
 
   return (
-    <LanguageProvider>
-      <QueryProvider>
-        <StatusBar style="light" backgroundColor="#081024" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: '#081024' },
-          }}
-        >
-          <Stack.Screen name="index" />
-          <Stack.Screen name="auth" />
-          <Stack.Screen name="home" />
-          <Stack.Screen name="profile" />
-          <Stack.Screen name="notifications" />
-          <Stack.Screen name="vehicle/details" />
-          <Stack.Screen name="vehicle/new" />
-        </Stack>
-      </QueryProvider>
-    </LanguageProvider>
+    <SafeAreaProvider>
+      <LanguageProvider>
+        <QueryProvider>
+          <StatusBar style="light" backgroundColor="#081024" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: '#081024' },
+            }}
+          >
+            <Stack.Screen name="index" />
+            <Stack.Screen name="auth" />
+            <Stack.Screen name="home" />
+            <Stack.Screen name="profile" />
+            <Stack.Screen name="notifications" />
+            <Stack.Screen name="vehicle/details" />
+            <Stack.Screen name="vehicle/new" />
+          </Stack>
+        </QueryProvider>
+      </LanguageProvider>
+    </SafeAreaProvider>
   );
 }

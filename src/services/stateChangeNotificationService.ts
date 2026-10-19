@@ -1,4 +1,4 @@
-import { API_ENDPOINTS, API_CONFIG } from '../config/constants';
+import { NOTIFICATIONS_CONFIG } from '../config/constants';
 
 export interface StateChangeNotification {
   vehicleId: string;
@@ -9,6 +9,10 @@ export interface StateChangeNotification {
   timestamp: string;
 }
 
+/**
+ * Legacy OneSignal path. Disabled: el backend envía Expo Push al pasar a SOLICITADO.
+ * No reintroducir POST /notifications/state-change desde la app.
+ */
 export class StateChangeNotificationService {
   private static instance: StateChangeNotificationService;
 
@@ -19,38 +23,11 @@ export class StateChangeNotificationService {
     return StateChangeNotificationService.instance;
   }
 
-  /**
-   * Notify backend about state change so it can send OneSignal push notification
-   */
-  async notifyStateChange(notification: StateChangeNotification): Promise<boolean> {
-    try {
-      console.log('📡 Notifying backend about state change:', notification);
-      
-      const response = await fetch(`${API_CONFIG.BASE_URL}${API_ENDPOINTS.STATE_CHANGE_NOTIFICATION}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(notification),
-      });
-
-      if (response.ok) {
-        console.log('✅ Backend notified successfully');
-        return true;
-      } else {
-        // Silently handle 404 (endpoint not implemented) and other errors
-        if (response.status === 404) {
-          console.log('ℹ️ Backend endpoint not implemented yet - notifications will work once backend is ready');
-        } else {
-          console.log('⚠️ Backend notification failed:', response.status);
-        }
-        return false;
-      }
-    } catch (error) {
-      // Silently handle network errors - this is expected until backend is ready
-      console.log('ℹ️ Backend notification service not available yet - will work once backend endpoint is implemented');
-      return false;
+  async notifyStateChange(_notification: StateChangeNotification): Promise<boolean> {
+    if (__DEV__ && NOTIFICATIONS_CONFIG.ENABLED) {
+      console.log('ℹ️ state-change push omitido (backend Expo Push en SOLICITADO)');
     }
+    return false;
   }
 }
 

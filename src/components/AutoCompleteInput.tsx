@@ -68,12 +68,12 @@ export const AutoCompleteInput: React.FC<Props> = ({
   const filteredItems = arrayData.filter((el) => {
     const searchLower = searchText?.toLowerCase() || '';
     const descriptionLower = el.description.toLowerCase();
-    
-    // Búsqueda consecutiva: verifica que la descripción empiece exactamente con el texto buscado
-    if (searchLower.length === 0) return true;
-    
+
+    // Sin texto: no listar todas las marcas (congela iOS con cientos de items)
+    if (searchLower.length === 0) return false;
+
     return descriptionLower.startsWith(searchLower);
-  });
+  }).slice(0, 40);
 
   return (
     <View style={styles.container}>

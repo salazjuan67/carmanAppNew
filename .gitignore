@@ -12,6 +12,12 @@ expo-env.d.ts
 # Signing (no subir claves ni contraseñas)
 credentials.json
 android/keystores/
+google-services.json
+GoogleService-Info.plist
+*-firebase-adminsdk*.json
+
+# Proyecto/cámara aparte (no forma parte del app store build)
+CamaraPatenteFinal/
 
 # Native
 .kotlin/

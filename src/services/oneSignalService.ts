@@ -12,6 +12,10 @@ let OneSignalMod: any = null;
 let loadAttempted = false;
 
 function loadOneSignalModule(): any | null {
+  if (!ONESIGNAL_CONFIG.ENABLED) {
+    loadAttempted = true;
+    return null;
+  }
   if (Platform.OS === 'ios' || Platform.OS === 'web') {
     loadAttempted = true;
     return null;

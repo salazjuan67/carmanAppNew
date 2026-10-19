@@ -72,6 +72,8 @@ export const API_ENDPOINTS = {
   // Notifications
   NOTIFICATIONS: '/notificaciones',
   UNREAD_NOTIFICATIONS: '/notificaciones/unread',
+  REGISTER_NOTIFICATION_DEVICE: '/notifications/register-device',
+  UNREGISTER_NOTIFICATION_DEVICE: '/notifications/unregister-device',
   MARK_AS_READ: (notificationId: string) => `/notificaciones/${notificationId}/read`,
   STATE_CHANGE_NOTIFICATION: '/notifications/state-change',
 
@@ -141,8 +143,15 @@ export const UI_CONFIG = {
   PULL_TO_REFRESH_THRESHOLD: 80,
 };
 
-// OneSignal Configuration
+// Expo Push en iOS y Android. OneSignal sigue apagado.
+export const NOTIFICATIONS_CONFIG = {
+  ENABLED: true,
+  IOS_ENABLED: true,
+  ANDROID_ENABLED: true,
+};
+
+// OneSignal desactivado en builds móviles: el SDK nativo tumba Android/iOS al inicializar.
 export const ONESIGNAL_CONFIG = {
   APP_ID: '2e8adea2-edb7-425c-acda-17df0ef92d9f',
-  ENABLED: true,
+  ENABLED: false,
 };

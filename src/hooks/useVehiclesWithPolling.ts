@@ -1,18 +1,19 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { vehicleService } from '../services/vehicleService';
 import {
   isNonRetryableVehicleHttpError,
   isSessionExpiredVehicleError,
   SESSION_EXPIRED_USER_MESSAGE,
 } from '../services/sessionExpired';
-import { useStateChangeDetection } from './useStateChangeDetection';
+import { useHomeUiStore } from '../store/homeUiStore';
 import { Vehicle } from '../types/vehicle';
 
 export const useVehiclesWithPolling = (establishmentId?: string) => {
   const queryClient = useQueryClient();
   const noop = useCallback(() => {}, []);
+  const vehiclesRefreshPending = useHomeUiStore((s) => s.vehiclesRefreshPending);
 
   // Polling cada 8s — suficiente para operaciones de valet; sin refetch en background (batería)
   const {
@@ -55,6 +56,14 @@ export const useVehiclesWithPolling = (establishmentId?: string) => {
     }, [establishmentId, refetch, sessionExpired])
   );
 
+  // Push vehicle_requested (foreground/tap): refrescar Solicitados sin esperar al polling
+  useEffect(() => {
+    if (!establishmentId || sessionExpired || !vehiclesRefreshPending) return;
+    if (!useHomeUiStore.getState().consumeVehiclesRefreshRequest()) return;
+    console.log('🔄 Vehicles refresh from push notification');
+    void queryClient.invalidateQueries({ queryKey: ['vehicles', establishmentId] });
+  }, [establishmentId, sessionExpired, vehiclesRefreshPending, queryClient]);
+
   // Función para invalidar y refetch manualmente
   const invalidateAndRefetch = useCallback(() => {
     console.log('🔄 Manual invalidate and refetch');
@@ -66,9 +75,6 @@ export const useVehiclesWithPolling = (establishmentId?: string) => {
     console.log('🔄 Immediate refetch');
     refetch();
   }, [refetch]);
-
-  // Detect state changes and add notifications
-  useStateChangeDetection(displayVehicles, establishmentId);
 
   if (sessionExpired) {
     return {

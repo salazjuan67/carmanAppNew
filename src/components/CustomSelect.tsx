@@ -17,12 +17,18 @@ export const CustomSelect: React.FC<Props> = ({ items, title, disabled, onValueC
 
   return (
     <View style={styles.container}>
-      <Modal animationType="fade" transparent={true} visible={modalVisible}>
-        <View style={styles.modalOverlay}>
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setModalVisible(false)}>
           <View style={styles.modalContent}>
             <FlatList
               data={items}
               keyExtractor={(item) => item.id}
+              keyboardShouldPersistTaps="handled"
               renderItem={({ item, index }) => {
                 const onPress = () => {
                   onValueChange(item.id, index);
@@ -39,7 +45,7 @@ export const CustomSelect: React.FC<Props> = ({ items, title, disabled, onValueC
               }}
             />
           </View>
-        </View>
+        </Pressable>
       </Modal>
       <Pressable
         disabled={disabled}

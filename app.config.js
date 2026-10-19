@@ -13,9 +13,12 @@ const appleTeamId =
   'A33553U39B';
 
 const easPlatform = process.env.EAS_BUILD_PLATFORM; // 'ios' | 'android' | undefined
-// OneSignal SDK only on Android EAS/local-android. iOS (EAS or simulator) uses stub NSE.
-const useOneSignalPlugin = easPlatform === 'android';
-const useStubNse = !useOneSignalPlugin;
+/**
+ * OneSignal deshabilitado en todas las plataformas (crashes nativos en Android/iOS).
+ * Android e iOS usan expo-notifications; stub NSE solo en builds iOS.
+ */
+const useOneSignalPlugin = false;
+const useStubNse = easPlatform !== 'android';
 
 const basePlugins = (appJson.expo.plugins || [])
   .filter((p) => !(Array.isArray(p) && p[0] === 'onesignal-expo-plugin'))
@@ -34,6 +37,16 @@ const basePlugins = (appJson.expo.plugins || [])
             ...((p[1] && p[1].android) || {}),
             newArchEnabled: false,
           },
+        },
+      ];
+    }
+    // Asegurar background remote notifications en iOS
+    if (Array.isArray(p) && p[0] === 'expo-notifications') {
+      return [
+        'expo-notifications',
+        {
+          enableBackgroundRemoteNotifications: true,
+          ...(p[1] || {}),
         },
       ];
     }

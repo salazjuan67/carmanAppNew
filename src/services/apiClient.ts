@@ -159,7 +159,8 @@ class ApiClient {
             endpoint === API_ENDPOINTS.LOGIN ||
             endpoint.includes('/auth/login') ||
             endpoint === API_ENDPOINTS.LOGOUT ||
-            endpoint.includes('/auth/logout');
+            endpoint.includes('/auth/logout') ||
+            endpoint === API_ENDPOINTS.UNREGISTER_NOTIFICATION_DEVICE;
           if (!skipGlobalSessionRedirect) {
             void navigateAfterSessionExpired();
           }
@@ -283,6 +284,29 @@ class ApiClient {
     return this.makeRequest<any[]>(API_ENDPOINTS.ESTABLISHMENTS);
   }
 
+  async getEstablishmentShift(establishmentId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest<any>(
+      `${API_ENDPOINTS.SHIFTS_BY_ESTABLISHMENT}/${establishmentId}`
+    );
+  }
+
+  async createShift(body: {
+    establecimiento: string;
+    turno: string;
+    nombre: string;
+  }): Promise<ApiResponse<any>> {
+    return this.makeRequest<any>(API_ENDPOINTS.SHIFTS, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  async endEstablishmentShift(establishmentId: string): Promise<ApiResponse<any>> {
+    return this.makeRequest<any>(`${API_ENDPOINTS.END_SHIFT}/${establishmentId}`, {
+      method: 'POST',
+    });
+  }
+
   /**
    * Listado de ingresos (Home) — misma base URL, headers y 401 que login / maestros.
    */
@@ -347,6 +371,27 @@ class ApiClient {
    */
   async getUnreadNotifications(): Promise<ApiResponse<any[]>> {
     return this.makeRequest<any[]>(API_ENDPOINTS.UNREAD_NOTIFICATIONS);
+  }
+
+  async registerNotificationDevice(body: {
+    deviceToken: string;
+    establishmentId: string;
+    userId?: string;
+    platform: string;
+  }): Promise<ApiResponse> {
+    return this.makeRequest(API_ENDPOINTS.REGISTER_NOTIFICATION_DEVICE, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  async unregisterNotificationDevice(body: {
+    deviceToken?: string | null;
+  }): Promise<ApiResponse> {
+    return this.makeRequest(API_ENDPOINTS.UNREGISTER_NOTIFICATION_DEVICE, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
   }
 
   /**
