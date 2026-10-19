@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "118356556524",
+    "project_id": "carman-27035",
+    "storage_bucket": "carman-27035.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:118356556524:android:dd2a2f53a796a7311a03c9",
+        "android_client_info": {
+          "package_name": "com.darey16.carman"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBWbAsyMoEwY1wduGurtdxo6XTPv3MUSq8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:118356556524:android:da804af7139dbb441a03c9",
+        "android_client_info": {
+          "package_name": "com.jusalazar.carman"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBWbAsyMoEwY1wduGurtdxo6XTPv3MUSq8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

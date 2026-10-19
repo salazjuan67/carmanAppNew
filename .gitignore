@@ -12,9 +12,10 @@ expo-env.d.ts
 # Signing (no subir claves ni contraseñas)
 credentials.json
 android/keystores/
-google-services.json
-GoogleService-Info.plist
+# google-services.json se versiona: EAS lo necesita para FCM en Android.
+# No versionar la clave privada de service account:
 *-firebase-adminsdk*.json
+GoogleService-Info.plist
 
 # Proyecto/cámara aparte (no forma parte del app store build)
 CamaraPatenteFinal/
