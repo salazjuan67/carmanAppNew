@@ -15,7 +15,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.carmanapp.baires",
-      "buildNumber": "29",
+      "buildNumber": "30",
       "supportsTablet": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
