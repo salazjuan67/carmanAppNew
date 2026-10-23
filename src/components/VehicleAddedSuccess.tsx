@@ -1,7 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import {
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CheckCircle, X } from 'lucide-react-native';
-import QRCode from 'react-native-qrcode-svg';
 import { colors, spacing, typography, borderRadius } from '../config/theme';
 import { Vehicle } from '../types/vehicle';
 import { generateWhatsAppQR } from '../utils/formatters';
@@ -13,143 +21,168 @@ interface VehicleAddedSuccessProps {
   onClose: () => void;
 }
 
-export const VehicleAddedSuccess: React.FC<VehicleAddedSuccessProps> = ({ 
-  vehicle, 
-  onClose 
-}) => {
+/**
+ * Pantalla completa (Modal) para que el QR quede visible y se pueda scrollear en teléfonos chicos;
+ * antes era un overlay dentro del formulario y el QR quedaba cortado debajo del encabezado.
+ */
+export const VehicleAddedSuccess: React.FC<VehicleAddedSuccessProps> = ({ vehicle, onClose }) => {
   const { t } = useLanguage();
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  // El borde animado suma 60px al QR; que entre en la tarjeta con margen.
+  const qrSize = Math.round(Math.min(Math.max(width - 160, 180), 260));
+
   return (
-    <View style={styles.overlay}>
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.successIcon}>
-            <CheckCircle size={32} color={colors.success[600]} />
-          </View>
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <X size={24} color={colors.darkGrey} />
-          </TouchableOpacity>
-        </View>
+    <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
+      <View style={styles.overlay}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + spacing.lg },
+          ]}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          <View style={styles.container}>
+            <View style={styles.header}>
+              <View style={styles.titleRow}>
+                <CheckCircle size={26} color={colors.success[600]} />
+                <Text style={styles.title}>{t('vehicleAddedSuccess')}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={onClose}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityLabel="Cerrar"
+              >
+                <X size={22} color={colors.darkGrey} />
+              </TouchableOpacity>
+            </View>
 
-        {/* Title */}
-        <Text style={styles.title}>{t('vehicleAddedSuccess')}</Text>
-        
-        {/* Vehicle Info */}
-        <View style={styles.vehicleInfo}>
-          <Text style={styles.plate}>{vehicle.patente}</Text>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>{t('sector')}:</Text>
-            <Text style={styles.infoValue}>{vehicle.sector}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>{t('key')}:</Text>
-            <Text style={styles.infoValue}>{vehicle.nroLlave || 0}</Text>
-          </View>
-        </View>
+            <Text style={styles.plate}>{vehicle.patente}</Text>
+            <View style={styles.chips}>
+              <View style={styles.chip}>
+                <Text style={styles.chipLabel}>{t('sector')}</Text>
+                <Text style={styles.chipValue}>{vehicle.sector}</Text>
+              </View>
+              <View style={styles.chip}>
+                <Text style={styles.chipLabel}>{t('key')}</Text>
+                <Text style={styles.chipValue}>{vehicle.nroLlave || 0}</Text>
+              </View>
+            </View>
 
-        {/* QR Section */}
-        <View style={styles.qrSection}>
-          <AnimatedQRCode 
-            value={generateWhatsAppQR(vehicle)} 
-            vehicle={vehicle}
-            size={180} 
-            backgroundColor="white"
-            color="black"
-          />
-        </View>
+            <View style={styles.qrSection}>
+              <AnimatedQRCode
+                value={generateWhatsAppQR(vehicle)}
+                vehicle={vehicle}
+                size={qrSize}
+                backgroundColor="white"
+                color="black"
+              />
+              <Text style={styles.qrHint}>{t('scanToRequest')}</Text>
+            </View>
 
-        {/* Close Button */}
-        <TouchableOpacity style={styles.closeButtonBottom} onPress={onClose}>
-          <Text style={styles.closeButtonText}>{t('continue')}</Text>
-        </TouchableOpacity>
+            <TouchableOpacity style={styles.continueButton} onPress={onClose}>
+              <Text style={styles.continueButtonText}>{t('continue')}</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </View>
-    </View>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
   overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1000,
+    paddingHorizontal: spacing.md,
   },
   container: {
     backgroundColor: colors.white,
     borderRadius: borderRadius.xl,
-    padding: spacing.xl,
-    margin: spacing.lg,
-    maxWidth: 400,
-    width: '90%',
-    maxHeight: '90%',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.lg,
+    maxWidth: 420,
+    width: '100%',
   },
   header: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
-  successIcon: {
+  titleRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: spacing.sm,
+    flex: 1,
+    paddingRight: spacing.sm,
+  },
+  title: {
+    flexShrink: 1,
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.bold,
+    color: colors.darkBlue,
   },
   closeButton: {
     padding: spacing.xs,
-  },
-  title: {
-    fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.bold,
-    color: colors.darkBlue,
-    textAlign: 'center',
-    marginBottom: spacing.lg,
-  },
-  vehicleInfo: {
-    backgroundColor: colors.greyBackground,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
   },
   plate: {
     fontSize: typography.sizes['2xl'],
     fontWeight: typography.weights.bold,
     color: colors.darkBlue,
     textAlign: 'center',
+    letterSpacing: 1,
+  },
+  chips: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
     marginBottom: spacing.md,
   },
-  infoRow: {
+  chip: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    gap: spacing.xs,
+    backgroundColor: colors.greyBackground,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
   },
-  infoLabel: {
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.medium,
+  chipLabel: {
+    fontSize: typography.sizes.sm,
     color: colors.darkGrey,
   },
-  infoValue: {
-    fontSize: typography.sizes.base,
-    fontWeight: typography.weights.semibold,
+  chipValue: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.bold,
     color: colors.black,
   },
   qrSection: {
     alignItems: 'center',
-    marginBottom: spacing.md,
   },
-  closeButtonBottom: {
+  qrHint: {
+    marginTop: spacing.sm,
+    fontSize: typography.sizes.sm,
+    color: colors.darkGrey,
+    textAlign: 'center',
+  },
+  continueButton: {
     backgroundColor: colors.darkBlue,
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
     borderRadius: borderRadius.lg,
     alignItems: 'center',
-    marginTop: spacing.md,
+    marginTop: spacing.lg,
   },
-  closeButtonText: {
+  continueButtonText: {
     color: colors.white,
     fontSize: typography.sizes.base,
     fontWeight: typography.weights.semibold,
