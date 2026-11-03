@@ -100,7 +100,7 @@ export const API_ENDPOINTS = {
 const appVersion =
   Constants.expoConfig?.version ??
   (Constants.manifest as { version?: string } | null)?.version ??
-  '14.2.0';
+  '14.2.7';
 
 // App Configuration
 export const APP_CONFIG = {
@@ -119,6 +119,8 @@ export const STORAGE_KEYS = {
   ESTABLISHMENT_DATA: 'establishment_data',
   LANGUAGE: 'language',
   THEME: 'theme',
+  EXPO_PUSH_TOKEN: 'expo_push_token',
+  PUSH_UNREGISTER_PENDING: 'push_unregister_pending',
 };
 
 // Notification Configuration

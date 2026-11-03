@@ -387,6 +387,8 @@ class ApiClient {
 
   async unregisterNotificationDevice(body: {
     deviceToken?: string | null;
+    userId?: string;
+    platform?: string;
   }): Promise<ApiResponse> {
     return this.makeRequest(API_ENDPOINTS.UNREGISTER_NOTIFICATION_DEVICE, {
       method: 'POST',

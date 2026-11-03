@@ -3,6 +3,7 @@ import { AppState, InteractionManager, Platform } from 'react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { notificationService } from '../services/notificationService';
+import { authService } from '../services/authService';
 import { NOTIFICATIONS_CONFIG } from '../config/constants';
 
 export const useNotifications = (establishmentId?: string, userId?: string) => {
@@ -14,6 +15,12 @@ export const useNotifications = (establishmentId?: string, userId?: string) => {
 
   const registerDevice = useCallback(async () => {
     if (!enabled || !Device.isDevice || !establishmentId) {
+      return;
+    }
+    if (!authService.isAuthenticated() || authService.isLoggingOut()) {
+      return;
+    }
+    if (!notificationService.canRegister()) {
       return;
     }
     if (!notificationService.getDeviceToken()) {
@@ -28,6 +35,8 @@ export const useNotifications = (establishmentId?: string, userId?: string) => {
 
   const initializeAndRegister = useCallback(async () => {
     if (!enabled || !Device.isDevice) return;
+    if (!authService.isAuthenticated() || authService.isLoggingOut()) return;
+    if (!notificationService.canRegister()) return;
     console.log('📱 Inicializando Expo Notifications…');
     const initialized = await notificationService.initialize();
     if (initialized) {

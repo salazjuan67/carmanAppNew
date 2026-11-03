@@ -18,6 +18,8 @@ export interface LoginCredentials {
 
 class AuthService {
   private static instance: AuthService;
+  /** Evita que Home vuelva a registrar el push token mientras corre el logout. */
+  private loggingOut = false;
   /** isLoading arranca en true hasta que initialize() lea el almacenamiento; si no, las pantallas protegidas mandan al login antes de restaurar la sesión. */
   private authState: AuthState = {
     isAuthenticated: false,
@@ -36,9 +38,14 @@ class AuthService {
     return AuthService.instance;
   }
 
+  isLoggingOut(): boolean {
+    return this.loggingOut;
+  }
+
   /**
    * Initialize auth service - check for stored tokens
    */
+
   async initialize(): Promise<boolean> {
     try {
       this.setLoading(true);
@@ -61,6 +68,13 @@ class AuthService {
             isLoading: false,
           };
           
+          try {
+            const { notificationService } = await import('./notificationService');
+            notificationService.enableRegistration();
+          } catch (e) {
+            console.warn('⚠️ No se pudo rehabilitar push al restaurar sesión:', e);
+          }
+
           // Configure OneSignal tags for the restored user
           await this.configureOneSignalTags(user);
           
@@ -71,6 +85,13 @@ class AuthService {
           console.error('❌ Error parsing stored user data:', error);
           await this.clearStoredData();
         }
+      }
+
+      try {
+        const { notificationService } = await import('./notificationService');
+        await notificationService.retryPendingUnregister();
+      } catch (e) {
+        console.warn('⚠️ Pending push unregister:', e);
       }
 
       this.authState.isLoading = false;
@@ -119,6 +140,13 @@ class AuthService {
             isLoading: false,
           };
 
+          try {
+            const { notificationService } = await import('./notificationService');
+            notificationService.enableRegistration();
+          } catch (e) {
+            console.warn('⚠️ No se pudo rehabilitar push tras login:', e);
+          }
+
           // Configure OneSignal tags for the authenticated user
           await this.configureOneSignalTags(user);
 
@@ -135,6 +163,12 @@ class AuthService {
             refreshToken: null,
             isLoading: false,
           };
+          try {
+            const { notificationService } = await import('./notificationService');
+            notificationService.enableRegistration();
+          } catch (e) {
+            console.warn('⚠️ No se pudo rehabilitar push tras login:', e);
+          }
           this.notifyListeners();
           return { success: true };
         }
@@ -186,11 +220,15 @@ class AuthService {
    * Limpia sesión local tras 401 (token vencido). No llama al API de logout.
    */
   async clearLocalSessionAfterUnauthorized(): Promise<void> {
+    this.loggingOut = true;
     try {
       console.log('🔐 Sesión inválida (401) — limpiando almacenamiento local');
       try {
         const { notificationService } = await import('./notificationService');
-        await notificationService.unregisterDevice();
+        notificationService.beginLogout();
+        await notificationService.unregisterDevice({
+          userId: this.authState.user?._id,
+        });
       } catch (e) {
         console.warn('⚠️ No se pudieron cortar las notificaciones:', e);
       }
@@ -219,6 +257,8 @@ class AuthService {
         isLoading: false,
       };
       this.notifyListeners();
+    } finally {
+      this.loggingOut = false;
     }
   }
 
@@ -226,12 +266,15 @@ class AuthService {
    * Logout user
    */
   async logout(): Promise<void> {
+    this.loggingOut = true;
+    const userId = this.authState.user?._id;
     try {
       console.log('🔐 Logging out...');
 
       try {
         const { notificationService } = await import('./notificationService');
-        await notificationService.unregisterDevice();
+        notificationService.beginLogout();
+        await notificationService.unregisterDevice({ userId });
       } catch (e) {
         console.warn('⚠️ No se pudieron cortar las notificaciones al cerrar sesión:', e);
       }
@@ -273,6 +316,8 @@ class AuthService {
         isLoading: false,
       };
       this.notifyListeners();
+    } finally {
+      this.loggingOut = false;
     }
   }
 
