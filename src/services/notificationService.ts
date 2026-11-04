@@ -357,7 +357,7 @@ export class NotificationService {
     const token = await this.resolveTokenForUnregister(options?.deviceToken);
 
     try {
-      if (token) {
+      if (token || options?.userId) {
         const response = await apiClient.unregisterNotificationDevice({
           deviceToken: token,
           userId: options?.userId,
