@@ -8,8 +8,9 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
+  TextInput,
 } from 'react-native';
-import { X, CreditCard, Check } from 'lucide-react-native';
+import { X, CreditCard, Check, Search } from 'lucide-react-native';
 import { colors, spacing, typography, borderRadius } from '../config/theme';
 import { PhysicalCard } from '../types/vehicle';
 import { physicalCardService } from '../services/physicalCardService';
@@ -34,24 +35,51 @@ export const CardSelectorModal: React.FC<CardSelectorModalProps> = ({
   const [availableCards, setAvailableCards] = useState<PhysicalCard[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCard, setSelectedCard] = useState<PhysicalCard | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [assignedConflict, setAssignedConflict] = useState<PhysicalCard | null>(null);
 
   useEffect(() => {
-    if (visible) {
-      loadAvailableCards();
+    if (!visible) {
+      setSearchQuery('');
+      setAvailableCards([]);
+      setSelectedCard(null);
+      setAssignedConflict(null);
+      return;
     }
-  }, [visible, establishmentId]);
+  }, [visible]);
 
-  const loadAvailableCards = async () => {
+  useEffect(() => {
+    if (!visible) return;
+    const q = searchQuery.trim();
+    let cancelled = false;
     setLoading(true);
-    try {
-      const cards = await physicalCardService.getAvailableCards(establishmentId);
-      setAvailableCards(cards);
-    } catch (error) {
-      Alert.alert(t('error'), t('loadingCardsError'));
-    } finally {
-      setLoading(false);
-    }
-  };
+
+    const timer = setTimeout(async () => {
+      try {
+        if (q.length > 0) {
+          const result = await physicalCardService.searchCards(establishmentId, q);
+          if (cancelled) return;
+          setAvailableCards(result.cards || []);
+          setAssignedConflict(result.assignedCard || null);
+        } else {
+          const cards = await physicalCardService.getAvailableCards(establishmentId);
+          if (cancelled) return;
+          setAvailableCards(cards);
+          setAssignedConflict(null);
+        }
+      } catch (error) {
+        if (cancelled) return;
+        Alert.alert(t('error'), t('loadingCardsError'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }, q.length > 0 ? 300 : 0);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [visible, establishmentId, searchQuery]);
 
   const handleCardSelect = (card: PhysicalCard) => {
     setSelectedCard(card);
@@ -125,8 +153,33 @@ export const CardSelectorModal: React.FC<CardSelectorModalProps> = ({
 
         <View style={styles.content}>
           <Text style={styles.subtitle}>
-            {t('selectCardSubtitle')}
+            {t('searchCardHint')}
           </Text>
+
+          <View style={styles.searchBox}>
+            <Search size={18} color={colors.darkGrey} />
+            <TextInput
+              style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder={t('searchCardPlaceholder')}
+              placeholderTextColor={colors.darkGrey}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={12}>
+                <X size={16} color={colors.darkGrey} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {assignedConflict && availableCards.length === 0 && !loading && (
+            <Text style={styles.conflictText}>
+              {t('cardAlreadyInUse')} ({assignedConflict.cardNumber})
+            </Text>
+          )}
 
           {loading ? (
             <View style={styles.loadingContainer}>
@@ -144,7 +197,9 @@ export const CardSelectorModal: React.FC<CardSelectorModalProps> = ({
                 <View style={styles.emptyContainer}>
                   <CreditCard size={48} color={colors.darkGrey} />
                   <Text style={styles.emptyText}>
-                    {t('noCardsAvailable')}
+                    {searchQuery.trim()
+                      ? t('cardNotInEstablishment')
+                      : t('noCardsAvailable')}
                   </Text>
                 </View>
               }
@@ -165,7 +220,9 @@ export const CardSelectorModal: React.FC<CardSelectorModalProps> = ({
               styles.confirmButtonText,
               !selectedCard && styles.confirmButtonTextDisabled,
             ]}>
-              {selectedCard ? t('changeToCard', { cardNumber: selectedCard.cardNumber }) : t('changeCard')}
+              {selectedCard
+                ? `${t('useThisCard')} ${selectedCard.cardNumber}`
+                : t('useThisCard')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -204,6 +261,31 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.base,
     color: colors.darkGrey,
     marginVertical: spacing.md,
+    textAlign: 'center',
+  },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.ligthGrey,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: spacing.md,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: typography.sizes.base,
+    color: colors.black,
+    paddingVertical: 0,
+  },
+  conflictText: {
+    fontSize: typography.sizes.sm,
+    color: colors.error[700],
+    fontWeight: typography.weights.semibold,
+    marginBottom: spacing.sm,
     textAlign: 'center',
   },
   loadingContainer: {

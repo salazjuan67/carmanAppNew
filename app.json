@@ -2,7 +2,7 @@
   "expo": {
     "name": "Carman",
     "slug": "carman-jusalazar-app",
-    "version": "14.2.7",
+    "version": "14.2.8",
     "scheme": "carman",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.carmanapp.baires",
-      "buildNumber": "31",
+      "buildNumber": "32",
       "supportsTablet": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -31,7 +31,7 @@
       }
     },
     "android": {
-      "versionCode": 32,
+      "versionCode": 33,
       "package": "com.darey16.carman",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {

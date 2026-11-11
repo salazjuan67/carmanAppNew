@@ -7,10 +7,11 @@ import {
   Alert,
   Modal,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { CameraView, requestCameraPermissionsAsync } from 'expo-camera';
 import type { CameraType } from 'expo-camera';
-import { CreditCard, Smartphone, Check, X, RefreshCw, Scan, ScanLine } from 'lucide-react-native';
+import { CreditCard, Smartphone, Check, X, RefreshCw, Scan, Search } from 'lucide-react-native';
 import { colors, spacing, typography, borderRadius } from '../config/theme';
 import { PhysicalCard } from '../types/vehicle';
 import { physicalCardService } from '../services/physicalCardService';
@@ -45,6 +46,10 @@ export const PhysicalCardButton: React.FC<PhysicalCardButtonProps> = ({
   const [showScanner, setShowScanner] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<PhysicalCard[]>([]);
+  const [assignedConflict, setAssignedConflict] = useState<PhysicalCard | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     onNoCardSelected();
@@ -56,6 +61,9 @@ export const PhysicalCardButton: React.FC<PhysicalCardButtonProps> = ({
       setNoCardSelected(true);
       setShowCardSelector(false);
       setShowScanner(false);
+      setSearchQuery('');
+      setSearchResults([]);
+      setAssignedConflict(null);
       onNoCardSelected();
     }
   }, [resetTrigger]);
@@ -122,6 +130,47 @@ export const PhysicalCardButton: React.FC<PhysicalCardButtonProps> = ({
 
   const handleChangeCard = () => {
     setShowCardSelector(true);
+  };
+
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (assignedCard || q.length < 1) {
+      setSearchResults([]);
+      setAssignedConflict(null);
+      setIsSearching(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const result = await physicalCardService.searchCards(establishmentId, q);
+        if (cancelled) return;
+        setSearchResults(result.cards || []);
+        setAssignedConflict(result.assignedCard || null);
+      } catch (error) {
+        if (cancelled) return;
+        setSearchResults([]);
+        setAssignedConflict(null);
+      } finally {
+        if (!cancelled) setIsSearching(false);
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [searchQuery, establishmentId, assignedCard]);
+
+  const selectSearchedCard = (card: PhysicalCard) => {
+    setAssignedCard(card);
+    setNoCardSelected(false);
+    onCardAssigned(card);
+    setSearchQuery('');
+    setSearchResults([]);
+    setAssignedConflict(null);
   };
 
   const handleCardSelected = (newCard: PhysicalCard) => {
@@ -200,6 +249,69 @@ export const PhysicalCardButton: React.FC<PhysicalCardButtonProps> = ({
           </TouchableOpacity>
         )}
       </View>
+
+      {!assignedCard && (
+        <View style={styles.searchSection}>
+          <View style={styles.searchBox}>
+            <Search size={18} color={colors.darkGrey} />
+            <TextInput
+              style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={(text) => {
+                if (noCardSelected && text.trim()) {
+                  handleOpenPhysicalOptions();
+                }
+                setSearchQuery(text);
+              }}
+              placeholder={t('searchCardPlaceholder')}
+              placeholderTextColor={colors.darkGrey}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              editable={!disabled}
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={12}>
+                <X size={16} color={colors.darkGrey} />
+              </TouchableOpacity>
+            )}
+          </View>
+          <Text style={styles.searchHint}>{t('searchCardHint')}</Text>
+
+          {isSearching && (
+            <View style={styles.searchStatus}>
+              <ActivityIndicator size="small" color={colors.primary[600]} />
+              <Text style={styles.searchStatusText}>{t('searchingCards')}</Text>
+            </View>
+          )}
+
+          {!isSearching && assignedConflict && searchResults.length === 0 && (
+            <Text style={styles.searchConflict}>
+              {t('cardAlreadyInUse')} ({assignedConflict.cardNumber})
+            </Text>
+          )}
+
+          {!isSearching &&
+            searchQuery.trim().length > 0 &&
+            searchResults.length === 0 &&
+            !assignedConflict && (
+              <Text style={styles.searchEmpty}>{t('cardNotInEstablishment')}</Text>
+            )}
+
+          {searchResults.map((card) => (
+            <TouchableOpacity
+              key={card._id}
+              style={styles.searchResult}
+              onPress={() => selectSearchedCard(card)}
+              disabled={disabled}
+            >
+              <CreditCard size={18} color={colors.primary[600]} />
+              <Text style={styles.searchResultNumber}>{card.cardNumber}</Text>
+              <Text style={styles.searchResultAction}>{t('useThisCard')}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       {assignedCard ? (
         // Mostrar tarjeta asignada
@@ -390,6 +502,73 @@ const styles = StyleSheet.create({
   },
   buttonsContainer: {
     gap: 12,
+  },
+  searchSection: {
+    gap: 8,
+    marginBottom: 12,
+  },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.primary[200],
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: typography.sizes.base,
+    color: colors.black,
+    paddingVertical: 0,
+  },
+  searchHint: {
+    fontSize: typography.sizes.sm,
+    color: colors.darkGrey,
+    marginTop: -4,
+  },
+  searchStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  searchStatusText: {
+    fontSize: typography.sizes.sm,
+    color: colors.darkGrey,
+  },
+  searchConflict: {
+    fontSize: typography.sizes.sm,
+    color: colors.error[700],
+    fontWeight: typography.weights.semibold,
+  },
+  searchEmpty: {
+    fontSize: typography.sizes.sm,
+    color: colors.darkGrey,
+  },
+  searchResult: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.primary[50],
+    borderWidth: 1,
+    borderColor: colors.primary[200],
+    borderRadius: borderRadius.lg,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  searchResultNumber: {
+    flex: 1,
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.bold,
+    color: colors.primary[700],
+    fontFamily: 'monospace',
+  },
+  searchResultAction: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.primary[600],
   },
   cardActionsRow: {
     flexDirection: 'row',

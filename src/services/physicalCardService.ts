@@ -1,5 +1,5 @@
-import { API_CONFIG } from '../config/constants';
-import { PhysicalCard, CardAssignmentResponse } from '../types/vehicle';
+import { API_CONFIG, API_ENDPOINTS } from '../config/constants';
+import { PhysicalCard, CardAssignmentResponse, CardSearchResponse } from '../types/vehicle';
 
 class PhysicalCardService {
   private baseURL: string;
@@ -54,14 +54,22 @@ class PhysicalCardService {
   }
 
   // Asignar tarjeta a un vehículo específico (después de crear el ingreso)
-  async assignToVehicle(establishmentId: string, establishmentName: string, vehicleId: string, patente: string): Promise<CardAssignmentResponse> {
-    return this.makeRequest<CardAssignmentResponse>('/physical-cards/assign-to-vehicle', {
+  async assignToVehicle(
+    establishmentId: string,
+    establishmentName: string,
+    vehicleId: string,
+    patente: string,
+    card?: { cardId?: string; cardNumber?: string }
+  ): Promise<CardAssignmentResponse> {
+    return this.makeRequest<CardAssignmentResponse>(API_ENDPOINTS.PHYSICAL_CARDS_ASSIGN_TO_VEHICLE, {
       method: 'POST',
       body: JSON.stringify({ 
         establishmentId, 
         establishmentName,
         vehicleId,
-        patente
+        patente,
+        ...(card?.cardId ? { cardId: card.cardId } : {}),
+        ...(card?.cardNumber ? { cardNumber: card.cardNumber } : {}),
       }),
     });
   }
@@ -104,13 +112,20 @@ class PhysicalCardService {
   // Obtener tarjeta por número
   async getCardByNumber(cardNumber: string): Promise<PhysicalCard | null> {
     try {
-      return await this.makeRequest<PhysicalCard>(`/physical-cards/number/${cardNumber}`);
-    } catch (error) {
+      return await this.makeRequest<PhysicalCard>(API_ENDPOINTS.PHYSICAL_CARDS_BY_NUMBER(cardNumber));
+    } catch (error: any) {
       if (error.message.includes('404')) {
         return null;
       }
       throw error;
     }
+  }
+
+  async searchCards(establishmentId: string, query: string): Promise<CardSearchResponse> {
+    const q = encodeURIComponent(query.trim());
+    return this.makeRequest<CardSearchResponse>(
+      `${API_ENDPOINTS.PHYSICAL_CARDS_SEARCH}?establishmentId=${establishmentId}&q=${q}`
+    );
   }
 }
 

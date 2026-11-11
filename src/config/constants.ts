@@ -94,13 +94,14 @@ export const API_ENDPOINTS = {
   PHYSICAL_CARDS_BY_QR: (qrCode: string) => `/physical-cards/qr/${qrCode}`,
   PHYSICAL_CARDS_BY_NUMBER: (cardNumber: string) =>
     `/physical-cards/number/${cardNumber}`,
+  PHYSICAL_CARDS_SEARCH: '/physical-cards/search',
 };
 
 /** Misma versión que `expo.version` en app.json (EAS / stores). */
 const appVersion =
   Constants.expoConfig?.version ??
   (Constants.manifest as { version?: string } | null)?.version ??
-  '14.2.7';
+  '14.2.8';
 
 // App Configuration
 export const APP_CONFIG = {

@@ -1,6 +1,6 @@
 {
   "name": "carmannewapp",
-  "version": "14.2.7",
+  "version": "14.2.8",
   "main": "App.tsx",
   "scripts": {
     "start": "expo start",

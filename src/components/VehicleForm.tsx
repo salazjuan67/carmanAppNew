@@ -226,7 +226,11 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({
             establishmentId,
             selectedEstablishment?.nombre || 'Establecimiento',
             result._id,
-            data.patente
+            data.patente,
+            {
+              cardId: assignedCard._id,
+              cardNumber: assignedCard.cardNumber,
+            }
           );
           
           console.log('✅ Tarjeta vinculada:', cardResponse.assignedCard.cardNumber);

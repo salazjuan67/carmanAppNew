@@ -53,7 +53,7 @@ export const translations = {
     model: 'Modelo',
     color: 'Color',
     driverData: 'Datos del Conductor',
-    usePhysicalCardOption: 'Usar tarjeta física (escanear o asignar)',
+    usePhysicalCardOption: 'Usar tarjeta física (buscar, escanear o asignar)',
     takePhoto: 'Tomar Foto',
     selectFromGallery: 'Seleccionar de Galería',
     cameraPermission: 'Permiso de Cámara',
@@ -195,6 +195,13 @@ export const translations = {
     cameraPermissionDenied: 'Se necesita permiso de cámara para escanear la tarjeta',
     cardNotFound: 'Tarjeta no encontrada. Verifique que el QR sea válido.',
     cardReadingError: 'Error al leer la tarjeta. Intente nuevamente.',
+    searchCardNumber: 'Buscar número de tarjeta',
+    searchCardPlaceholder: 'Ej: 105 o CM105',
+    searchCardHint: 'Escribí el número de una tarjeta existente de este establecimiento',
+    searchingCards: 'Buscando tarjetas...',
+    cardAlreadyInUse: 'Esa tarjeta ya está en uso',
+    cardNotInEstablishment: 'No hay una tarjeta con ese número en este establecimiento',
+    useThisCard: 'Vincular esta tarjeta',
   },
   en: {
     // Navigation
@@ -250,7 +257,7 @@ export const translations = {
     model: 'Model',
     color: 'Color',
     driverData: 'Driver Data',
-    usePhysicalCardOption: 'Use physical card (scan or assign)',
+    usePhysicalCardOption: 'Use physical card (search, scan or assign)',
     takePhoto: 'Take Photo',
     selectFromGallery: 'Select from Gallery',
     cameraPermission: 'Camera Permission',
@@ -392,6 +399,13 @@ export const translations = {
     cameraPermissionDenied: 'Camera permission is required to scan the card',
     cardNotFound: 'Card not found. Please verify the QR is valid.',
     cardReadingError: 'Error reading card. Please try again.',
+    searchCardNumber: 'Search card number',
+    searchCardPlaceholder: 'E.g. 105 or CM105',
+    searchCardHint: 'Type an existing card number for this establishment',
+    searchingCards: 'Searching cards...',
+    cardAlreadyInUse: 'That card is already in use',
+    cardNotInEstablishment: 'No card with that number in this establishment',
+    useThisCard: 'Link this card',
   }
 };
 

@@ -198,6 +198,11 @@ export interface CardAssignmentResponse {
   message: string;
 }
 
+export interface CardSearchResponse {
+  cards: PhysicalCard[];
+  assignedCard?: PhysicalCard | null;
+}
+
 /** Filtros opcionales para GET /vehiculos/ingresos (solo enviar si tienen valor) */
 export interface IngresosListFilters {
   empleado?: string;
