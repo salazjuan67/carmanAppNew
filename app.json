@@ -15,7 +15,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.carmanapp.baires",
-      "buildNumber": "34",
+      "buildNumber": "35",
       "supportsTablet": true,
       "entitlements": {
         "aps-environment": "production"
