@@ -100,7 +100,10 @@ export class NotificationService {
       // Do not prompt on cold start (can contribute to launch races on iOS).
       // Only check current status; permission UI is requested later from the hook.
       const current = await Notifications.getPermissionsAsync();
-      if (current.status !== 'granted') {
+      const iosAllowsAlert =
+        Platform.OS !== 'ios' ||
+        current.ios?.allowsAlert !== false;
+      if (current.status !== 'granted' || !iosAllowsAlert) {
         console.log('ℹ️ Notification permission not granted yet');
         return false;
       }

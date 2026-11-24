@@ -88,7 +88,13 @@ export const useNotifications = (establishmentId?: string, userId?: string) => {
       const result =
         current.status === 'granted'
           ? current
-          : await Notifications.requestPermissionsAsync();
+          : await Notifications.requestPermissionsAsync({
+              ios: {
+                allowAlert: true,
+                allowBadge: true,
+                allowSound: true,
+              },
+            });
       const granted = result.status === 'granted';
       setPermissionGranted(granted);
 
